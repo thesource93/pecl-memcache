@@ -45,14 +45,6 @@
 #include "ext/standard/php_smart_string_public.h"
 #include "memcache_queue.h"
 
-#ifndef ZSTR
-#define ZSTR
-#define ZSTR_VAL(v) v
-#define zstr char *
-#else
-#define ZSTR_VAL(v) (v).s
-#endif
-
 /*
  * Mac OS X has no MSG_NOSIGNAL but >= 10.2 comes with SO_NOSIGPIPE which is a setsockopt() option
  * and not a send() parameter as MSG_NOSIGNAL. OpenBSD has none of the options so we need to ignore 
