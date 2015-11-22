@@ -29,10 +29,6 @@
 #include "ext/standard/php_string.h"
 #include "php_memcache.h"
 
-#ifndef ZEND_ENGINE_2
-#define OnUpdateLong OnUpdateInt
-#endif
-
 /* True global resources - no need for thread safety here */
 static int le_memcache_pool, le_memcache_server;
 static zend_class_entry *memcache_pool_ce;
