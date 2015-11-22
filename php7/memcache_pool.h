@@ -42,7 +42,7 @@
 #include <string.h>
 
 #include "php.h"
-#include "ext/standard/php_smart_str_public.h"
+#include "ext/standard/php_smart_string_public.h"
 #include "memcache_queue.h"
 
 #ifndef ZSTR

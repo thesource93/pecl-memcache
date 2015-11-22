@@ -29,7 +29,7 @@
 #include "php_variables.h"
 
 #include "SAPI.h"
-#include "ext/standard/php_smart_str.h"
+#include "ext/standard/php_smart_string.h"
 #include "ext/standard/url.h"
 #ifdef PHP_WIN32
 # if (PHP_MAJOR_VERSION > 5) || (PHP_MAJOR_VERSION == 5 && PHP_MINOR_VERSION >= 6)

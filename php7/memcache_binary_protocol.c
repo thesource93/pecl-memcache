@@ -34,7 +34,7 @@
 #include <netinet/in.h>
 #endif
 #include "memcache_pool.h"
-#include "ext/standard/php_smart_str.h"
+#include "ext/standard/php_smart_string.h"
 
 #ifndef PHP_WIN32
 #if __BYTE_ORDER == __BIG_ENDIAN
