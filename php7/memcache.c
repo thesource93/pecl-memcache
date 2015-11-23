@@ -600,8 +600,9 @@ static void php_mmc_numeric(INTERNAL_FUNCTION_PARAMETERS, int deleted, int inver
 	value_handler_param[2] = NULL;
 
 	if (Z_TYPE_P(keys) == IS_ARRAY) {
-		zval **key;
-		HashPosition pos;
+		zend_string *key;
+		zval *val;
+		zend_ulong key_index;
 
 		if (deleted) {
 			/* changed to true/false by mmc_numeric_response_handler */
@@ -612,19 +613,20 @@ static void php_mmc_numeric(INTERNAL_FUNCTION_PARAMETERS, int deleted, int inver
 			array_init(return_value);
 		}
 
-		zend_hash_internal_pointer_reset_ex(Z_ARRVAL_P(keys), &pos);
-		while (zend_hash_get_current_data_ex(Z_ARRVAL_P(keys), (void **)&key, &pos) == SUCCESS) {
-			zend_hash_move_forward_ex(Z_ARRVAL_P(keys), &pos);
+		ZEND_HASH_FOREACH_STR_KEY_VAL(Z_ARRVAL_P(keys), key, val) {
+			zval key_zv;
 
 			/* allocate request */
 			request = mmc_pool_request(
-				pool, MMC_PROTO_TCP, mmc_numeric_response_handler, return_value,
-				mmc_pool_failover_handler, NULL TSRMLS_CC);
+					pool, MMC_PROTO_TCP, mmc_numeric_response_handler, return_value,
+					mmc_pool_failover_handler, NULL TSRMLS_CC);
 
 			request->value_handler = mmc_value_handler_multi;
 			request->value_handler_param = value_handler_param;
 
-			if (mmc_prepare_key(*key, request->key, &(request->key_len)) != MMC_OK) {
+			ZVAL_STRING(key_zv, key);
+
+			if (mmc_prepare_key(&key_zv, request->key, &(request->key_len)) != MMC_OK) {
 				mmc_pool_release(pool, request);
 				php_error_docref(NULL TSRMLS_CC, E_WARNING, "Invalid key");
 				continue;
@@ -634,7 +636,7 @@ static void php_mmc_numeric(INTERNAL_FUNCTION_PARAMETERS, int deleted, int inver
 				pool->protocol->delete(request, request->key, request->key_len, exptime);
 			}
 			else {
-				pool->protocol->mutate(request, *key, request->key, request->key_len, invert ? -value : value, defval, defval_used, exptime);
+				pool->protocol->mutate(request, &key_zv, request->key, request->key_len, invert ? -value : value, defval, defval_used, exptime);
 			}
 
 			/* schedule request */
@@ -644,7 +646,9 @@ static void php_mmc_numeric(INTERNAL_FUNCTION_PARAMETERS, int deleted, int inver
 
 			/* begin sending requests immediatly */
 			mmc_pool_select(pool TSRMLS_CC);
-		}
+
+		} ZEND_HASH_FOREACH_END();
+
 	}
 	else {
 		/* changed to true/false by mmc_numeric_response_handler or set to a value
