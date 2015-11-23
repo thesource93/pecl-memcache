@@ -286,7 +286,7 @@ PHP_MINIT_FUNCTION(memcache)
 	memcache_pool_ce = zend_register_internal_class(&ce TSRMLS_CC);
 
 	INIT_CLASS_ENTRY(ce, "Memcache", php_memcache_class_functions);
-	memcache_ce = zend_register_internal_class_ex(&ce, memcache_pool_ce, NULL TSRMLS_CC);
+	memcache_ce = zend_register_internal_class_ex(&ce, memcache_pool_ce TSRMLS_CC);
 
 	le_memcache_pool = zend_register_list_destructors_ex(_mmc_pool_list_dtor, NULL, "memcache connection", module_number);
 	le_memcache_server = zend_register_list_destructors_ex(NULL, _mmc_server_list_dtor, "persistent memcache connection", module_number);
