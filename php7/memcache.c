@@ -106,9 +106,7 @@ static zend_function_entry php_memcache_class_functions[] = {
 /* {{{ memcache_module_entry
  */
 zend_module_entry memcache_module_entry = {
-#if ZEND_MODULE_API_NO >= 20010901
 	STANDARD_MODULE_HEADER,
-#endif
 	"memcache",
 	memcache_functions,
 	PHP_MINIT(memcache),
@@ -116,9 +114,7 @@ zend_module_entry memcache_module_entry = {
 	NULL,
 	NULL,
 	PHP_MINFO(memcache),
-#if ZEND_MODULE_API_NO >= 20010901
 	PHP_MEMCACHE_VERSION,
-#endif
 	STANDARD_MODULE_PROPERTIES
 };
 /* }}} */
