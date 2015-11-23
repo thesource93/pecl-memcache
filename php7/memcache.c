@@ -131,13 +131,13 @@ static PHP_INI_MH(OnUpdateChunkSize) /* {{{ */
 {
 	long int lval;
 
-	lval = strtol(new_value, NULL, 10);
+	lval = strtol(ZSTR_VAL(new_value), NULL, 10);
 	if (lval <= 0) {
-		php_error_docref(NULL TSRMLS_CC, E_WARNING, "memcache.chunk_size must be a positive integer ('%s' given)", new_value);
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, "memcache.chunk_size must be a positive integer ('%s' given)", ZSTR_VAL(new_value));
 		return FAILURE;
 	}
 
-	return OnUpdateLong(entry, new_value, new_value_length, mh_arg1, mh_arg2, mh_arg3, stage TSRMLS_CC);
+	return OnUpdateLong(entry, new_value, mh_arg1, mh_arg2, mh_arg3, stage TSRMLS_CC);
 }
 /* }}} */
 
@@ -145,26 +145,26 @@ static PHP_INI_MH(OnUpdateFailoverAttempts) /* {{{ */
 {
 	long int lval;
 
-	lval = strtol(new_value, NULL, 10);
+	lval = strtol(ZSTR_VAL(new_value), NULL, 10);
 	if (lval <= 0) {
-		php_error_docref(NULL TSRMLS_CC, E_WARNING, "memcache.max_failover_attempts must be a positive integer ('%s' given)", new_value);
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, "memcache.max_failover_attempts must be a positive integer ('%s' given)", ZSTR_VAL(new_value));
 		return FAILURE;
 	}
 
-	return OnUpdateLong(entry, new_value, new_value_length, mh_arg1, mh_arg2, mh_arg3, stage TSRMLS_CC);
+	return OnUpdateLong(entry, new_value, mh_arg1, mh_arg2, mh_arg3, stage TSRMLS_CC);
 }
 /* }}} */
 
 static PHP_INI_MH(OnUpdateProtocol) /* {{{ */
 {
-	if (!strcasecmp(new_value, "ascii")) {
+	if (!strcasecmp(ZSTR_VAL(new_value), "ascii")) {
 		MEMCACHE_G(protocol) = MMC_ASCII_PROTOCOL;
 	}
-	else if (!strcasecmp(new_value, "binary")) {
+	else if (!strcasecmp(ZSTR_VAL(new_value), "binary")) {
 		MEMCACHE_G(protocol) = MMC_BINARY_PROTOCOL;
 	}
 	else {
-		php_error_docref(NULL TSRMLS_CC, E_WARNING, "memcache.protocol must be in set {ascii, binary} ('%s' given)", new_value);
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, "memcache.protocol must be in set {ascii, binary} ('%s' given)", ZSTR_VAL(new_value));
 		return FAILURE;
 	}
 
@@ -174,14 +174,14 @@ static PHP_INI_MH(OnUpdateProtocol) /* {{{ */
 
 static PHP_INI_MH(OnUpdateHashStrategy) /* {{{ */
 {
-	if (!strcasecmp(new_value, "standard")) {
+	if (!strcasecmp(ZSTR_VAL(new_value), "standard")) {
 		MEMCACHE_G(hash_strategy) = MMC_STANDARD_HASH;
 	}
-	else if (!strcasecmp(new_value, "consistent")) {
+	else if (!strcasecmp(ZSTR_VAL(new_value), "consistent")) {
 		MEMCACHE_G(hash_strategy) = MMC_CONSISTENT_HASH;
 	}
 	else {
-		php_error_docref(NULL TSRMLS_CC, E_WARNING, "memcache.hash_strategy must be in set {standard, consistent} ('%s' given)", new_value);
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, "memcache.hash_strategy must be in set {standard, consistent} ('%s' given)", ZSTR_VAL(new_value));
 		return FAILURE;
 	}
 
@@ -191,14 +191,14 @@ static PHP_INI_MH(OnUpdateHashStrategy) /* {{{ */
 
 static PHP_INI_MH(OnUpdateHashFunction) /* {{{ */
 {
-	if (!strcasecmp(new_value, "crc32")) {
+	if (!strcasecmp(ZSTR_VAL(new_value), "crc32")) {
 		MEMCACHE_G(hash_function) = MMC_HASH_CRC32;
 	}
-	else if (!strcasecmp(new_value, "fnv")) {
+	else if (!strcasecmp(ZSTR_VAL(new_value), "fnv")) {
 		MEMCACHE_G(hash_function) = MMC_HASH_FNV1A;
 	}
 	else {
-		php_error_docref(NULL TSRMLS_CC, E_WARNING, "memcache.hash_function must be in set {crc32, fnv} ('%s' given)", new_value);
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, "memcache.hash_function must be in set {crc32, fnv} ('%s' given)", ZSTR_VAL(new_value));
 		return FAILURE;
 	}
 
@@ -210,13 +210,13 @@ static PHP_INI_MH(OnUpdateRedundancy) /* {{{ */
 {
 	long int lval;
 
-	lval = strtol(new_value, NULL, 10);
+	lval = strtol(ZSTR_VAL(new_value), NULL, 10);
 	if (lval <= 0) {
-		php_error_docref(NULL TSRMLS_CC, E_WARNING, "memcache.redundancy must be a positive integer ('%s' given)", new_value);
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, "memcache.redundancy must be a positive integer ('%s' given)", ZSTR_VAL(new_value));
 		return FAILURE;
 	}
 
-	return OnUpdateLong(entry, new_value, new_value_length, mh_arg1, mh_arg2, mh_arg3, stage TSRMLS_CC);
+	return OnUpdateLong(entry, new_value, mh_arg1, mh_arg2, mh_arg3, stage TSRMLS_CC);
 }
 /* }}} */
 
@@ -224,13 +224,13 @@ static PHP_INI_MH(OnUpdateCompressThreshold) /* {{{ */
 {
 	long int lval;
 
-	lval = strtol(new_value, NULL, 10);
+	lval = strtol(ZSTR_VAL(new_value), NULL, 10);
 	if (lval < 0) {
-		php_error_docref(NULL TSRMLS_CC, E_WARNING, "memcache.compress_threshold must be a positive integer ('%s' given)", new_value);
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, "memcache.compress_threshold must be a positive integer ('%s' given)", ZSTR_VAL(new_value));
 		return FAILURE;
 	}
 
-	return OnUpdateLong(entry, new_value, new_value_length, mh_arg1, mh_arg2, mh_arg3, stage TSRMLS_CC);
+	return OnUpdateLong(entry, new_value, mh_arg1, mh_arg2, mh_arg3, stage TSRMLS_CC);
 }
 /* }}} */
 
@@ -238,13 +238,13 @@ static PHP_INI_MH(OnUpdateLockTimeout) /* {{{ */
 {
 	long int lval;
 
-	lval = strtol(new_value, NULL, 10);
+	lval = strtol(ZSTR_VAL(new_value), NULL, 10);
 	if (lval <= 0) {
-		php_error_docref(NULL TSRMLS_CC, E_WARNING, "memcache.lock_timeout must be a positive integer ('%s' given)", new_value);
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, "memcache.lock_timeout must be a positive integer ('%s' given)", ZSTR_VAL(new_value));
 		return FAILURE;
 	}
 
-	return OnUpdateLong(entry, new_value, new_value_length, mh_arg1, mh_arg2, mh_arg3, stage TSRMLS_CC);
+	return OnUpdateLong(entry, new_value, mh_arg1, mh_arg2, mh_arg3, stage TSRMLS_CC);
 }
 /* }}} */
 
