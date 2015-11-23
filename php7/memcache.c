@@ -440,47 +440,30 @@ static void php_mmc_store(INTERNAL_FUNCTION_PARAMETERS, int op) /* {{{ */
 	RETVAL_NULL();
 
 	if (Z_TYPE_P(keys) == IS_ARRAY) {
-		char *key;
-		char keytmp[MAX_LENGTH_OF_LONG + 1];
-		unsigned int key_len;
-		unsigned long index;
-		int key_type;
+		zend_string *key;
+		zval *val;
+		zend_ulong index;
 
-		zval **arrval;
-		HashPosition pos;
-		zend_hash_internal_pointer_reset_ex(Z_ARRVAL_P(keys), &pos);
-
-		while (zend_hash_get_current_data_ex(Z_ARRVAL_P(keys), (void **)&arrval, &pos) == SUCCESS) {
-			key_type = zend_hash_get_current_key_ex(Z_ARRVAL_P(keys), &key, &key_len, &index, 0, &pos);
-			zend_hash_move_forward_ex(Z_ARRVAL_P(keys), &pos);
-
-			switch (key_type) {
-				case HASH_KEY_IS_STRING:
-					key_len--;
-					break;
-
-				case HASH_KEY_IS_LONG:
-					key_len = sprintf(keytmp, "%lu", index);
-					key = ZSTR(keytmp);
-					break;
-
-				default:
-					php_error_docref(NULL TSRMLS_CC, E_WARNING, "Invalid key");
-					continue;
+		ZEND_HASH_FOREACH_KEY_VAL(Z_ARRVAL_P(keys), index, key, val ) {
+			if (key == NULL) {
+				key = strpprintf(0, ZEND_ULONG_FMT, index);
 			}
 
 			/* allocate request */
 			request = mmc_pool_request(pool, MMC_PROTO_TCP,
-				mmc_stored_handler, return_value, mmc_pool_failover_handler, NULL TSRMLS_CC);
+					mmc_stored_handler, return_value, mmc_pool_failover_handler, NULL TSRMLS_CC);
 
-			if (mmc_prepare_key_ex(ZSTR_VAL(key), key_len, request->key, &(request->key_len)) != MMC_OK) {
+			if (mmc_prepare_key_ex(ZSTR_VAL(key), ZSTR_LEN(key), request->key, &(request->key_len)) != MMC_OK) {
 				php_error_docref(NULL TSRMLS_CC, E_WARNING, "Invalid key");
 				mmc_pool_release(pool, request);
+				zend_string_release(key);
 				continue;
 			}
 
+			zend_string_release(key);
+
 			/* assemble command */
-			if (pool->protocol->store(pool, request, op, request->key, request->key_len, flags, exptime, cas, *arrval TSRMLS_CC) != MMC_OK) {
+			if (pool->protocol->store(pool, request, op, request->key, request->key_len, flags, exptime, cas, val TSRMLS_CC) != MMC_OK) {
 				mmc_pool_release(pool, request);
 				continue;
 			}
@@ -492,7 +475,7 @@ static void php_mmc_store(INTERNAL_FUNCTION_PARAMETERS, int op) /* {{{ */
 
 			/* begin sending requests immediatly */
 			mmc_pool_select(pool TSRMLS_CC);
-		}
+		} ZEND_HASH_FOREACH_END();
 	}
 	else if (value) {
 		/* allocate request */
