@@ -440,7 +440,7 @@ static void php_mmc_store(INTERNAL_FUNCTION_PARAMETERS, int op) /* {{{ */
 	RETVAL_NULL();
 
 	if (Z_TYPE_P(keys) == IS_ARRAY) {
-		zstr key;
+		char *key;
 		char keytmp[MAX_LENGTH_OF_LONG + 1];
 		unsigned int key_len;
 		unsigned long index;
