@@ -347,7 +347,7 @@ static void _mmc_pool_list_dtor(zend_resource *rsrc TSRMLS_DC) /* {{{ */
 	mmc_pool_t *pool = (mmc_pool_t *)rsrc->ptr;
 
 	if (pool->failure_callback_param) {
-		zval_ptr_dtor((zval **)&pool->failure_callback_param);
+		zval_ptr_dtor((zval *)pool->failure_callback_param);
 		pool->failure_callback_param = NULL;
 	}
 
