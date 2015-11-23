@@ -363,21 +363,24 @@ static void _mmc_server_list_dtor(zend_resource *rsrc TSRMLS_DC) /* {{{ */
 
 static int mmc_get_pool(zval *id, mmc_pool_t **pool TSRMLS_DC) /* {{{ */
 {
-	zval **connection;
-	int resource_type;
+	zval *zv;
 
-	if (Z_TYPE_P(id) != IS_OBJECT || zend_hash_find(Z_OBJPROP_P(id), "connection", sizeof("connection"), (void **)&connection) == FAILURE) {
-		php_error_docref(NULL TSRMLS_CC, E_WARNING, "No servers added to memcache connection");
+	if (Z_TYPE_P(id) != IS_OBJECT || (zv = zend_hash_str_find(Z_OBJPROP_P(id), "connection", sizeof("connection")-1)) == NULL) {
+		php_error_docref(NULL, E_WARNING, "No servers added to memcache connection");
 		return 0;
 	}
 
-	*pool = (mmc_pool_t *) zend_list_find(Z_LVAL_PP(connection), &resource_type);
-	if (!*pool || resource_type != le_memcache_pool) {
-		php_error_docref(NULL TSRMLS_CC, E_WARNING, "Invalid MemcachePool->connection member variable");
+	if ((*pool = zend_fetch_resource_ex(zv, "connection", le_memcache_pool)) == NULL) {
+			php_error_docref(NULL, E_WARNING, "No connection on MemcachePool connection");
+			return 0;
+	}
+
+	if (!*pool) {
+		php_error_docref(NULL, E_WARNING, "Invalid MemcachePool->connection member variable");
 		return 0;
 	}
 
-	return Z_LVAL_PP(connection);
+	return 1;
 }
 /* }}} */
 
