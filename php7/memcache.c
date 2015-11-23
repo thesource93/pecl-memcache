@@ -265,8 +265,8 @@ PHP_INI_END()
 /* }}} */
 
 /* {{{ internal function protos */
-static void _mmc_pool_list_dtor(zend_rsrc_list_entry * TSRMLS_DC);
-static void _mmc_server_list_dtor(zend_rsrc_list_entry * TSRMLS_DC);
+static void _mmc_pool_list_dtor(zend_resource* TSRMLS_DC);
+static void _mmc_server_list_dtor(zend_resource* TSRMLS_DC);
 static void php_mmc_set_failure_callback(mmc_pool_t *, zval *, zval * TSRMLS_DC);
 static void php_mmc_failure_callback(mmc_pool_t *, mmc_t *, void * TSRMLS_DC);
 /* }}} */
@@ -346,7 +346,7 @@ PHP_MINFO_FUNCTION(memcache)
    internal functions
    ------------------ */
 
-static void _mmc_pool_list_dtor(zend_rsrc_list_entry *rsrc TSRMLS_DC) /* {{{ */
+static void _mmc_pool_list_dtor(zend_resource *rsrc TSRMLS_DC) /* {{{ */
 {
 	mmc_pool_t *pool = (mmc_pool_t *)rsrc->ptr;
 
@@ -359,7 +359,7 @@ static void _mmc_pool_list_dtor(zend_rsrc_list_entry *rsrc TSRMLS_DC) /* {{{ */
 }
 /* }}} */
 
-static void _mmc_server_list_dtor(zend_rsrc_list_entry *rsrc TSRMLS_DC) /* {{{ */
+static void _mmc_server_list_dtor(zend_resource *rsrc TSRMLS_DC) /* {{{ */
 {
 	mmc_server_free((mmc_t *)rsrc->ptr TSRMLS_CC);
 }
@@ -703,21 +703,21 @@ static void php_mmc_numeric(INTERNAL_FUNCTION_PARAMETERS, int deleted, int inver
 mmc_t *mmc_find_persistent(const char *host, int host_len, unsigned short port, unsigned short udp_port, double timeout, int retry_interval TSRMLS_DC) /* {{{ */
 {
 	mmc_t *mmc;
-	zend_rsrc_list_entry *le;
+	zend_resource *le;
 	char *key;
 	int key_len;
 
 	key_len = spprintf(&key, 0, "memcache:server:%s:%u:%u", host, port, udp_port);
 
 	if (zend_hash_find(&EG(persistent_list), key, key_len+1, (void **)&le) == FAILURE) {
-		zend_rsrc_list_entry new_le;
+		zend_resource new_le;
 
 		mmc = mmc_server_new(host, host_len, port, udp_port, 1, timeout, retry_interval TSRMLS_CC);
 		new_le.type = le_memcache_server;
 		new_le.ptr  = mmc;
 
 		/* register new persistent connection */
-		if (zend_hash_update(&EG(persistent_list), key, key_len+1, (void *)&new_le, sizeof(zend_rsrc_list_entry), NULL) == FAILURE) {
+		if (zend_hash_update(&EG(persistent_list), key, key_len+1, (void *)&new_le, sizeof(zend_resource), NULL) == FAILURE) {
 			mmc_server_free(mmc TSRMLS_CC);
 			mmc = NULL;
 		} else {
@@ -725,7 +725,7 @@ mmc_t *mmc_find_persistent(const char *host, int host_len, unsigned short port, 
 		}
 	}
 	else if (le->type != le_memcache_server || le->ptr == NULL) {
-		zend_rsrc_list_entry new_le;
+		zend_resource new_le;
 		zend_hash_del(&EG(persistent_list), key, key_len+1);
 
 		mmc = mmc_server_new(host, host_len, port, udp_port, 1, timeout, retry_interval TSRMLS_CC);
@@ -733,7 +733,7 @@ mmc_t *mmc_find_persistent(const char *host, int host_len, unsigned short port, 
 		new_le.ptr  = mmc;
 
 		/* register new persistent connection */
-		if (zend_hash_update(&EG(persistent_list), key, key_len+1, (void *)&new_le, sizeof(zend_rsrc_list_entry), NULL) == FAILURE) {
+		if (zend_hash_update(&EG(persistent_list), key, key_len+1, (void *)&new_le, sizeof(zend_resource), NULL) == FAILURE) {
 			mmc_server_free(mmc TSRMLS_CC);
 			mmc = NULL;
 		}
