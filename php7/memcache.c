@@ -695,15 +695,13 @@ mmc_t *mmc_find_persistent(const char *host, int host_len, unsigned short port, 
 
 	key_len = spprintf(&key, 0, "memcache:server:%s:%u:%u", host, port, udp_port);
 
-	if (zend_hash_find(&EG(persistent_list), key, key_len+1, (void **)&le) == FAILURE) {
-		zend_resource new_le;
-
+	if ((le = zend_hash_str_find_ptr(&EG(persistent_list), key, key_len)) == NULL) {
 		mmc = mmc_server_new(host, host_len, port, udp_port, 1, timeout, retry_interval TSRMLS_CC);
-		new_le.type = le_memcache_server;
-		new_le.ptr  = mmc;
+
+		le = zend_register_resource(mmc, le_memcache_server);
 
 		/* register new persistent connection */
-		if (zend_hash_update(&EG(persistent_list), key, key_len+1, (void *)&new_le, sizeof(zend_resource), NULL) == FAILURE) {
+		if (zend_hash_str_update_mem(&EG(persistent_list), key, key_len, le, sizeof(*le)) == NULL) {
 			mmc_server_free(mmc TSRMLS_CC);
 			mmc = NULL;
 		} else {
@@ -711,15 +709,15 @@ mmc_t *mmc_find_persistent(const char *host, int host_len, unsigned short port, 
 		}
 	}
 	else if (le->type != le_memcache_server || le->ptr == NULL) {
-		zend_resource new_le;
-		zend_hash_del(&EG(persistent_list), key, key_len+1);
+		zend_hash_str_del(&EG(persistent_list), key, key_len);
 
 		mmc = mmc_server_new(host, host_len, port, udp_port, 1, timeout, retry_interval TSRMLS_CC);
-		new_le.type = le_memcache_server;
-		new_le.ptr  = mmc;
+		le->type = le_memcache_server;
+		le->ptr  = mmc;
+		GC_REFCOUNT(le) = 1;
 
 		/* register new persistent connection */
-		if (zend_hash_update(&EG(persistent_list), key, key_len+1, (void *)&new_le, sizeof(zend_resource), NULL) == FAILURE) {
+		if (zend_hash_str_update_mem(&EG(persistent_list), key, key_len, le, sizeof(*le)) == NULL) {
 			mmc_server_free(mmc TSRMLS_CC);
 			mmc = NULL;
 		}
