@@ -1210,8 +1210,8 @@ PHP_FUNCTION(memcache_add_server)
 	mmc_t *mmc;
 
 	char *host;
-	int host_len;
-	long tcp_port = MEMCACHE_G(default_port), weight = 1, retry_interval = MMC_DEFAULT_RETRY;
+	size_t host_len;
+	zend_long tcp_port = MEMCACHE_G(default_port), weight = 1, retry_interval = MMC_DEFAULT_RETRY;
 	double timeout = MMC_DEFAULT_TIMEOUT;
 	zend_bool persistent = 1, status = 1;
 
