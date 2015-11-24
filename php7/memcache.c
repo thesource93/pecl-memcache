@@ -1532,14 +1532,14 @@ int mmc_value_handler_multi(
 	if (Z_TYPE_P(result[0]) != IS_ARRAY) {
 		array_init(result[0]);
 	}
-	add_assoc_zval_ex(result[0], (char *)key, key_len + 1, value);
+	add_assoc_zval_ex(result[0], (char *)key, key_len, value);
 
 	/* add flags to result */
 	if (result[1] != NULL) {
 		if (Z_TYPE_P(result[1]) != IS_ARRAY) {
 			array_init(result[1]);
 		}
-		add_assoc_long_ex(result[1], (char *)key, key_len + 1, flags);
+		add_assoc_long_ex(result[1], (char *)key, key_len, flags);
 	}
 
 	/* add CAS value to result */
@@ -1547,7 +1547,7 @@ int mmc_value_handler_multi(
 		if (Z_TYPE_P(result[2]) != IS_ARRAY) {
 			array_init(result[2]);
 		}
-		add_assoc_long_ex(result[2], (char *)key, key_len + 1, cas);
+		add_assoc_long_ex(result[2], (char *)key, key_len, cas);
 	}
 
 	return MMC_REQUEST_DONE;
