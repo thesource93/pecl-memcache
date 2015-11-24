@@ -484,8 +484,8 @@ static void mmc_binary_append_get(mmc_request_t *request, zval *zkey, const char
 
 	/* reqid/opaque is the index into the collection of key pointers */
 	mmc_pack_header(&header, MMC_OP_GETQ, req->keys.len, key_len, 0, 0);
-	smart_str_appendl(&(request->sendbuf.value), (const char *)&header, sizeof(mmc_request_header_t));
-	smart_str_appendl(&(request->sendbuf.value), key, key_len);
+	smart_string_appendl(&(request->sendbuf.value), (const char *)&header, sizeof(mmc_request_header_t));
+	smart_string_appendl(&(request->sendbuf.value), key, key_len);
 
 	/* store key to be used by the response handler */
 	mmc_queue_push(&(req->keys), zkey);
@@ -497,7 +497,7 @@ static void mmc_binary_end_get(mmc_request_t *request) /* {{{ */
 	mmc_request_header_t header;
 	mmc_binary_request_t *req = (mmc_binary_request_t *)request;
 	mmc_pack_header(&header, MMC_OP_NOOP, req->keys.len, 0, 0, 0);
-	smart_str_appendl(&(request->sendbuf.value), (const char *)&header, sizeof(header));
+	smart_string_appendl(&(request->sendbuf.value), (const char *)&header, sizeof(header));
 }
 /* }}} */
 
@@ -513,8 +513,8 @@ static void mmc_binary_get(mmc_request_t *request, int op, zval *zkey, const cha
 	mmc_pack_header(&(header.base), MMC_OP_GET, req->keys.len, key_len, 0, 0);
 	header.base.cas = 0x0;
 
-	smart_str_appendl(&(request->sendbuf.value), (const char *)&header, sizeof(mmc_get_request_header_t));
-	smart_str_appendl(&(request->sendbuf.value), key, key_len);
+	smart_string_appendl(&(request->sendbuf.value), (const char *)&header, sizeof(mmc_get_request_header_t));
+	smart_string_appendl(&(request->sendbuf.value), key, key_len);
 #if MMC_DEBUG
 	mmc_binary_hexdump(request->sendbuf.value.c, request->sendbuf.value.len);
 #endif
@@ -551,7 +551,7 @@ static int mmc_binary_store(
 		request->sendbuf.value.len += sizeof(mmc_store_append_header_t);
 
 		/* append key and data */
-		smart_str_appendl(&(request->sendbuf.value), key, key_len);
+		smart_string_appendl(&(request->sendbuf.value), key, key_len);
 
 		valuelen = request->sendbuf.value.len;
 		status = mmc_pack_value(pool, &(request->sendbuf), value, &flags TSRMLS_CC);
@@ -580,7 +580,7 @@ static int mmc_binary_store(
 		request->sendbuf.value.len += sizeof(mmc_store_request_header_t);
 
 		/* append key and data */
-		smart_str_appendl(&(request->sendbuf.value), key, key_len);
+		smart_string_appendl(&(request->sendbuf.value), key, key_len);
 
 		valuelen = request->sendbuf.value.len;
 		status = mmc_pack_value(pool, &(request->sendbuf), value, &flags TSRMLS_CC);
@@ -618,8 +618,8 @@ static void mmc_binary_delete(mmc_request_t *request, const char *key, unsigned 
 	mmc_pack_header(&(header.base), MMC_OP_DELETE, 0, key_len, sizeof(header) - sizeof(header.base), 0);
 	header.exptime = htonl(exptime);
 
-	smart_str_appendl(&(request->sendbuf.value), (const char *)&header, sizeof(header));
-	smart_str_appendl(&(request->sendbuf.value), key, key_len);
+	smart_string_appendl(&(request->sendbuf.value), (const char *)&header, sizeof(header));
+	smart_string_appendl(&(request->sendbuf.value), key, key_len);
 }
 /* }}} */
 
@@ -661,8 +661,8 @@ static void mmc_binary_mutate(mmc_request_t *request, zval *zkey, const char *ke
 	}
 
 	/* mutate request is 43 bytes */
-	smart_str_appendl(&(request->sendbuf.value), (const char *)&header, 44);
-	smart_str_appendl(&(request->sendbuf.value), key, key_len);
+	smart_string_appendl(&(request->sendbuf.value), (const char *)&header, 44);
+	smart_string_appendl(&(request->sendbuf.value), key, key_len);
 
 #if MMC_DEBUG
 	mmc_binary_hexdump(request->sendbuf.value.c, request->sendbuf.value.len);
@@ -682,7 +682,7 @@ static void mmc_binary_flush(mmc_request_t *request, unsigned int exptime) /* {{
 	req->next_parse_handler = mmc_request_read_response;
 
 	mmc_pack_header(&header, MMC_OP_FLUSH, 0, 0, 0, 0);
-	smart_str_appendl(&(request->sendbuf.value), (const char *)&header, sizeof(header));
+	smart_string_appendl(&(request->sendbuf.value), (const char *)&header, sizeof(header));
 }
 /* }}} */
 
@@ -696,7 +696,7 @@ static void mmc_binary_version(mmc_request_t *request) /* {{{ */
 
 	mmc_pack_header(&(header.base), MMC_OP_VERSION, 0, 0, 0, 0);
 	header.base.cas = 0x0;
-	smart_str_appendl(&(request->sendbuf.value), (const char *)&header, sizeof(header));
+	smart_string_appendl(&(request->sendbuf.value), (const char *)&header, sizeof(header));
 }
 /* }}} */
 
@@ -710,7 +710,7 @@ static void mmc_binary_stats(mmc_request_t *request, const char *type, long slab
 	req->next_parse_handler = mmc_request_read_response;
 
 	mmc_pack_header(&header, MMC_OP_NOOP, 0, 0, 0, 0);
-	smart_str_appendl(&(request->sendbuf.value), (const char *)&header, sizeof(header));
+	smart_string_appendl(&(request->sendbuf.value), (const char *)&header, sizeof(header));
 }
 /* }}} */
 
@@ -735,7 +735,7 @@ static void mmc_set_sasl_auth_data(mmc_pool_t *pool, mmc_request_t *request, con
 	request->sendbuf.value.len += sizeof(*header);
 
 	/* append key and data */
-	smart_str_appendl(&(request->sendbuf.value), "PLAIN", 5);
+	smart_string_appendl(&(request->sendbuf.value), "PLAIN", 5);
 	valuelen = request->sendbuf.value.len;
 
 	/* initialize header */
@@ -752,10 +752,10 @@ static void mmc_set_sasl_auth_data(mmc_pool_t *pool, mmc_request_t *request, con
 	(header->base).reqid = htonl(0);
 	header->base.cas = 0x0;
 
-	smart_str_appendl(&(request->sendbuf.value), "\0", 1);
-	smart_str_appendl(&(request->sendbuf.value), user, strlen(user));
-	smart_str_appendl(&(request->sendbuf.value), "\0", 1);
-	smart_str_appendl(&(request->sendbuf.value), password, strlen(password));
+	smart_string_appendl(&(request->sendbuf.value), "\0", 1);
+	smart_string_appendl(&(request->sendbuf.value), user, strlen(user));
+	smart_string_appendl(&(request->sendbuf.value), "\0", 1);
+	smart_string_appendl(&(request->sendbuf.value), password, strlen(password));
 
 #if MMC_DEBUG
 	mmc_binary_hexdump(request->sendbuf.value.c, request->sendbuf.value.len);

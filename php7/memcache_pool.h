@@ -120,7 +120,7 @@
 
 /* io buffer */
 typedef struct mmc_buffer {
-	smart_str		value;
+	smart_string	value;
 	unsigned int	idx;					/* current index */
 } mmc_buffer_t;
 

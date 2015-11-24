@@ -44,14 +44,14 @@ MMC_POOL_INLINE void mmc_buffer_alloc(mmc_buffer_t *buffer, unsigned int size)  
 	ensures space for an additional size bytes {{{ */
 {
 	register size_t newlen;
-	smart_str_alloc((&(buffer->value)), size, 0);
+	smart_string_alloc((&(buffer->value)), size, 0);
 }
 /* }}} */
 
 MMC_POOL_INLINE void mmc_buffer_free(mmc_buffer_t *buffer)  /* {{{ */
 {
 	if (buffer->value.c != NULL) {
-		smart_str_free(&(buffer->value));
+		smart_string_free(&(buffer->value));
 	}
 	memset(buffer, 0, sizeof(*buffer));
 }
@@ -155,7 +155,7 @@ static size_t mmc_stream_read_wrapper(mmc_stream_t *io, char *buf, size_t count 
 
 static char *mmc_stream_readline_wrapper(mmc_stream_t *io, char *buf, size_t maxlen, size_t *retlen TSRMLS_DC)  /* {{{ */
 {
-	return php_stream_get_line(io->stream, ZSTR(buf), maxlen, retlen);
+	return php_stream_get_line(io->stream, buf, maxlen, retlen);
 }
 /* }}} */
 
@@ -300,7 +300,7 @@ static void mmc_compress(mmc_pool_t *pool, mmc_buffer_t *buffer, const char *val
 			mmc_buffer_alloc(buffer, prev.value.len + result_len);
 
 			/* append prev header */
-			smart_str_appendl(&(buffer->value), prev.value.c, prev.value.len - value_len);
+			smart_string_appendl(&(buffer->value), prev.value.c, prev.value.len - value_len);
 			buffer->idx = prev.idx;
 		}
 		else {
@@ -318,7 +318,7 @@ static void mmc_compress(mmc_pool_t *pool, mmc_buffer_t *buffer, const char *val
 			buffer->value.len += result_len;
 		}
 		else {
-			smart_str_appendl(&(buffer->value), value, value_len);
+			smart_string_appendl(&(buffer->value), value, value_len);
 			*flags &= ~MMC_COMPRESSED;
 		}
 
@@ -327,7 +327,7 @@ static void mmc_compress(mmc_pool_t *pool, mmc_buffer_t *buffer, const char *val
 		}
 	}
 	else if (!copy) {
-		smart_str_appendl(&(buffer->value), value, value_len);
+		smart_string_appendl(&(buffer->value), value, value_len);
 	}
 }
 /* }}}*/
@@ -369,7 +369,7 @@ int mmc_pack_value(mmc_pool_t *pool, mmc_buffer_t *buffer, zval *value, unsigned
 		case IS_LONG:
 			*flags |= MMC_TYPE_LONG;
 			*flags &= ~MMC_COMPRESSED;
-			smart_str_append_long(&(buffer->value), Z_LVAL_P(value));
+			smart_string_append_long(&(buffer->value), Z_LVAL_P(value));
 			break;
 
 		case IS_DOUBLE: {
@@ -377,14 +377,15 @@ int mmc_pack_value(mmc_pool_t *pool, mmc_buffer_t *buffer, zval *value, unsigned
 			int len = snprintf(buf, 256, "%.14g", Z_DVAL_P(value));
 			*flags |= MMC_TYPE_DOUBLE;
 			*flags &= ~MMC_COMPRESSED;
-			smart_str_appendl(&(buffer->value), buf, len);
+			smart_string_appendl(&(buffer->value), buf, len);
 			break;
 		}
 
-		case IS_BOOL:
+		case IS_TRUE:
+		case IS_FALSE:
 			*flags |= MMC_TYPE_BOOL;
 			*flags &= ~MMC_COMPRESSED;
-			smart_str_appendc(&(buffer->value), Z_BVAL_P(value) ? '1' : '0');
+			smart_string_appendc(&(buffer->value), Z_BVAL_P(value) ? '1' : '0');
 			break;
 
 		default: {
@@ -517,7 +518,8 @@ int mmc_unpack_value(
 
 			default:
 				data[data_len] = '\0';
-				ZVAL_STRINGL(object, data, data_len, 0);
+				ZVAL_STRINGL(object, data, data_len);
+				efree(data);
 
 				if (!(flags & MMC_COMPRESSED)) {
 					/* release buffer because it's now owned by the zval */
@@ -710,7 +712,7 @@ static int mmc_server_connect(mmc_pool_t *pool, mmc_t *mmc, mmc_stream_t *io, in
 
 	io->stream = php_stream_xport_create(
 		host, host_len,
-		ENFORCE_SAFE_MODE | REPORT_ERRORS | (mmc->persistent ? STREAM_OPEN_PERSISTENT : 0),
+		REPORT_ERRORS | (mmc->persistent ? STREAM_OPEN_PERSISTENT : 0),
 		STREAM_XPORT_CLIENT | STREAM_XPORT_CONNECT,
 		hash_key, &tv, NULL, &errstr, &errnum);
 
@@ -1075,7 +1077,7 @@ static inline mmc_request_t *mmc_pool_request_alloc(mmc_pool_t *pool, int protoc
 
 	if (protocol == MMC_PROTO_UDP) {
 		mmc_udp_header_t header = {0};
-		smart_str_appendl(&(request->sendbuf.value), (const char *)&header, sizeof(header));
+		smart_string_appendl(&(request->sendbuf.value), (const char *)&header, sizeof(header));
 	}
 
 	request->failover_handler = failover_handler != NULL ? failover_handler : mmc_pool_failover_handler_null;

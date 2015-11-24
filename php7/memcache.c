@@ -624,7 +624,7 @@ static void php_mmc_numeric(INTERNAL_FUNCTION_PARAMETERS, int deleted, int inver
 			request->value_handler = mmc_value_handler_multi;
 			request->value_handler_param = value_handler_param;
 
-			ZVAL_STRING(key_zv, key);
+			ZVAL_STR(&key_zv, key);
 
 			if (mmc_prepare_key(&key_zv, request->key, &(request->key_len)) != MMC_OK) {
 				mmc_pool_release(pool, request);
@@ -748,10 +748,10 @@ static mmc_t *php_mmc_pool_addserver(
 	zval *mmc_object, const char *host, int host_len, long tcp_port, long udp_port, long weight,
 	zend_bool persistent, double timeout, long retry_interval, zend_bool status, mmc_pool_t **pool_result TSRMLS_DC) /* {{{ */
 {
-	zval **connection;
+	zval *connection;
 	mmc_pool_t *pool;
 	mmc_t *mmc;
-	int list_id, resource_type;
+	zend_resource *list_res;
 
 	if (weight < 1) {
 		php_error_docref(NULL TSRMLS_CC, E_WARNING, "weight must be a positive integer");
@@ -767,15 +767,16 @@ static mmc_t *php_mmc_pool_addserver(
 		return NULL;
 	}
 	/* initialize pool if need be */
-	if (zend_hash_find(Z_OBJPROP_P(mmc_object), "connection", sizeof("connection"), (void **)&connection) == FAILURE) {
+	if ((connection = zend_hash_str_find(Z_OBJPROP_P(mmc_object), "connection", sizeof("connection"))) == NULL) {
 		pool = mmc_pool_new(TSRMLS_C);
 		pool->failure_callback = &php_mmc_failure_callback;
-		list_id = MEMCACHE_LIST_INSERT(pool, le_memcache_pool);
-		add_property_resource(mmc_object, "connection", list_id);
+		list_res = zend_register_resource(pool, le_memcache_pool);
+		add_property_resource(mmc_object, "connection", list_res);
+		GC_REFCOUNT(list_res)++;
 	}
 	else {
-		pool = (mmc_pool_t *)zend_list_find(Z_LVAL_PP(connection), &resource_type);
-		if (!pool || resource_type != le_memcache_pool) {
+		pool = zend_fetch_resource_ex(connection, "connection", le_memcache_pool);
+		if (!pool) {
 			php_error_docref(NULL TSRMLS_CC, E_WARNING, "Unknown connection identifier");
 			return NULL;
 		}
@@ -808,8 +809,9 @@ static mmc_t *php_mmc_pool_addserver(
 	}
 
 	if (pool->protocol == &mmc_binary_protocol) {
-		zval *username = zend_read_property(memcache_ce, mmc_object, "username", strlen("username"), 1 TSRMLS_CC);
-		zval *password = zend_read_property(memcache_ce, mmc_object, "password", strlen("password"), 1 TSRMLS_CC);
+		zval rv1, rv2;
+		zval *username = zend_read_property(memcache_ce, mmc_object, "username", strlen("username"), 1, &rv1 TSRMLS_CC);
+		zval *password = zend_read_property(memcache_ce, mmc_object, "password", strlen("password"), 1, &rv2 TSRMLS_CC);
 		if (Z_TYPE_P(username) == IS_STRING && Z_TYPE_P(password) == IS_STRING) {
 			if (Z_STRLEN_P(username) > 1  && Z_STRLEN_P(password) > 1) {
 				mmc_request_t *request;
@@ -846,13 +848,14 @@ static void php_mmc_connect(INTERNAL_FUNCTION_PARAMETERS, zend_bool persistent) 
 	}
 	/* initialize pool and object if need be */
 	if (!mmc_object) {
-		int list_id;
+		zend_resource *list_res;
 		mmc_pool_t *pool = mmc_pool_new(TSRMLS_C);
 		pool->failure_callback = &php_mmc_failure_callback;
-		list_id = MEMCACHE_LIST_INSERT(pool, le_memcache_pool);
+		list_res = zend_register_resource(pool, le_memcache_pool);
 		mmc_object = return_value;
 		object_init_ex(mmc_object, memcache_ce);
-		add_property_resource(mmc_object, "connection", list_id);
+		add_property_resource(mmc_object, "connection", list_res);
+		GC_REFCOUNT(list_res)++;
 	} else {
 		RETVAL_TRUE;
 	}
@@ -884,7 +887,8 @@ static void php_mmc_connect(INTERNAL_FUNCTION_PARAMETERS, zend_bool persistent) 
  */
 static int mmc_stats_parse_stat(char *start, char *end, zval *result TSRMLS_DC)  /* {{{ */
 {
-	char *space, *colon, *key;
+	char *key;
+	const char *space, *colon;
 	long index = 0;
 
 	if (Z_TYPE_P(result) != IS_ARRAY) {
@@ -898,14 +902,14 @@ static int mmc_stats_parse_stat(char *start, char *end, zval *result TSRMLS_DC) 
 
 	/* find colon delimiting subkeys */
 	if ((colon = php_memnstr(start, ":", 1, space - 1)) != NULL) {
-		zval *element, **elem;
+		zval *element, *elem;
 		key = estrndup(start, colon - start);
 
 		/* find existing or create subkey array in result */
 		if ((is_numeric_string(key, colon - start, &index, NULL, 0) &&
-			zend_hash_index_find(Z_ARRVAL_P(result), index, (void **)&elem) != FAILURE) ||
-			zend_hash_find(Z_ARRVAL_P(result), key, colon - start + 1, (void **)&elem) != FAILURE) {
-			element = *elem;
+			(elem = zend_hash_index_find(Z_ARRVAL_P(result), index)) != NULL) ||
+			(elem = zend_hash_str_find(Z_ARRVAL_P(result), key, colon - start + 1)) != NULL) {
+			element = elem;
 		}
 		else {
 			MAKE_STD_ZVAL(element);
@@ -919,7 +923,7 @@ static int mmc_stats_parse_stat(char *start, char *end, zval *result TSRMLS_DC) 
 
 	/* no more subkeys, add value under last subkey */
 	key = estrndup(start, space - start);
-	add_assoc_stringl_ex(result, key, space - start + 1, space + 1, end - space, 1);
+	add_assoc_stringl_ex(result, key, space - start + 1, space + 1, end - space);
 	efree(key);
 
 	return 1;
@@ -931,7 +935,8 @@ static int mmc_stats_parse_stat(char *start, char *end, zval *result TSRMLS_DC) 
  */
 static int mmc_stats_parse_item(char *start, char *end, zval *result TSRMLS_DC)  /* {{{ */
 {
-	char *space, *value, *value_end, *key;
+	char *key;
+	const char *space, *value, *value_end;
 	zval *element;
 
 	if (Z_TYPE_P(result) != IS_ARRAY) {
@@ -953,7 +958,7 @@ static int mmc_stats_parse_item(char *start, char *end, zval *result TSRMLS_DC) 
 		} while (*value == ' ' && value <= end);
 
 		if (value <= end && (value_end = php_memnstr(value, " ", 1, end)) != NULL && value_end <= end) {
-			add_next_index_stringl(element, value, value_end - value, 1);
+			add_next_index_stringl(element, value, value_end - value);
 		}
 	}
 
@@ -968,7 +973,8 @@ static int mmc_stats_parse_item(char *start, char *end, zval *result TSRMLS_DC) 
 
 static int mmc_stats_parse_generic(char *start, char *end, zval *result TSRMLS_DC)  /* {{{ */
 {
-	char *space, *key;
+	const char *space;
+	char *key;
 
 	if (Z_TYPE_P(result) != IS_ARRAY) {
 		array_init(result);
@@ -977,11 +983,11 @@ static int mmc_stats_parse_generic(char *start, char *end, zval *result TSRMLS_D
 	if (start < end) {
 		if ((space = php_memnstr(start, " ", 1, end)) != NULL) {
 			key = estrndup(start, space - start);
-			add_assoc_stringl_ex(result, key, space - start + 1, space + 1, end - space, 1);
+			add_assoc_stringl_ex(result, key, space - start + 1, space + 1, end - space);
 			efree(key);
 		}
 		else {
-			add_next_index_stringl(result, start, end - start, 1);
+			add_next_index_stringl(result, start, end - start);
 		}
 	}
 	else {
@@ -994,43 +1000,41 @@ static int mmc_stats_parse_generic(char *start, char *end, zval *result TSRMLS_D
 
 static void php_mmc_failure_callback(mmc_pool_t *pool, mmc_t *mmc, void *param TSRMLS_DC) /* {{{ */
 {
-	zval **callback;
+	zval *callback;
 
 	/* check for userspace callback */
-	if (param != NULL && zend_hash_find(Z_OBJPROP_P((zval *)param), "_failureCallback", sizeof("_failureCallback"), (void **)&callback) == SUCCESS && Z_TYPE_PP(callback) != IS_NULL) {
-		if (MEMCACHE_IS_CALLABLE(*callback, 0, NULL)) {
-			zval *retval = NULL;
+	if (param != NULL && (callback = zend_hash_str_find(Z_OBJPROP_P((zval *)param), "_failureCallback", sizeof("_failureCallback"))) != NULL && Z_TYPE_P(callback) != IS_NULL) {
+		if (MEMCACHE_IS_CALLABLE(callback, 0, NULL)) {
+			zval retval;
 			zval *host, *tcp_port, *udp_port, *error, *errnum;
-			zval **params[5];
+			zval params[5];
 
-			params[0] = &host;
-			params[1] = &tcp_port;
-			params[2] = &udp_port;
-			params[3] = &error;
-			params[4] = &errnum;
+			ZVAL_UNDEF(&retval);
 
-			MAKE_STD_ZVAL(host);
-			MAKE_STD_ZVAL(tcp_port); MAKE_STD_ZVAL(udp_port);
-			MAKE_STD_ZVAL(error); MAKE_STD_ZVAL(errnum);
+			host = &params[0];
+			tcp_port = &params[1];
+			udp_port = &params[2];
+			error = &params[3];
+			errnum = &params[4];
 
-			ZVAL_STRING(host, mmc->host, 1);
+			ZVAL_STRING(host, mmc->host);
 			ZVAL_LONG(tcp_port, mmc->tcp.port); ZVAL_LONG(udp_port, mmc->udp.port);
 
 			if (mmc->error != NULL) {
-				ZVAL_STRING(error, mmc->error, 1);
+				ZVAL_STRING(error, mmc->error);
 			}
 			else {
 				ZVAL_NULL(error);
 			}
 			ZVAL_LONG(errnum, mmc->errnum);
 
-			call_user_function_ex(EG(function_table), NULL, *callback, &retval, 5, params, 0, NULL TSRMLS_CC);
+			call_user_function_ex(EG(function_table), NULL, callback, &retval, 5, params, 0, NULL TSRMLS_CC);
 
 			zval_ptr_dtor(&host);
 			zval_ptr_dtor(&tcp_port); zval_ptr_dtor(&udp_port);
 			zval_ptr_dtor(&error); zval_ptr_dtor(&errnum);
 
-			if (retval != NULL) {
+			if (Z_TYPE(retval) != IS_UNDEF) {
 				zval_ptr_dtor(&retval);
 			}
 		}
@@ -1176,7 +1180,7 @@ PHP_NAMED_FUNCTION(zif_memcache_pool_findserver)
 	zval *zkey;
 	char key[MMC_MAX_KEY_LEN + 1];
 	unsigned int key_len;
-	char *hostname;
+	zend_string *hostname;
 
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "z", &zkey) == FAILURE) {
 		return;
@@ -1192,8 +1196,8 @@ PHP_NAMED_FUNCTION(zif_memcache_pool_findserver)
 	}
 
 	mmc = mmc_pool_find(pool, key, key_len TSRMLS_CC);
-	spprintf(&hostname, 0, "%s:%d", mmc->host, mmc->tcp.port);
-	RETURN_STRING(hostname, 0);
+	hostname = strpprintf(0, "%s:%d", mmc->host, mmc->tcp.port);
+	RETURN_STR(hostname);
 }
 /* }}} */
 
@@ -1418,11 +1422,12 @@ static int mmc_version_handler(mmc_t *mmc, mmc_request_t *request, int response,
 		char *version = emalloc(message_len + 1);
 
 		if (sscanf(message, "VERSION %s", version) == 1) {
-			ZVAL_STRING((zval *)param, version, 0);
+			ZVAL_STRING((zval *)param, version);
+			efree(version);
 		}
 		else {
 			efree(version);
-			ZVAL_STRINGL((zval *)param, (char *)message, message_len, 1);
+			ZVAL_STRINGL((zval *)param, (char *)message, message_len);
 		}
 
 		return MMC_REQUEST_DONE;
@@ -1572,29 +1577,26 @@ int mmc_value_handler_single(
 static int mmc_value_failover_handler(mmc_pool_t *pool, mmc_t *mmc, mmc_request_t *request, void *param TSRMLS_DC) /*
 	uses keys and return value to reschedule requests to other servers, param is a zval ** pointer {{{ */
 {
-	zval **key, *keys = ((zval **)param)[0], **value_handler_param = (zval **)((void **)param)[1];
-	HashPosition pos;
+	zval *keys = ((zval **)param)[0], **value_handler_param = (zval **)((void **)param)[1];
+	zend_string *key;
 
 	if (!MEMCACHE_G(allow_failover) || request->failed_servers.len >= MEMCACHE_G(max_failover_attempts)) {
 		mmc_pool_release(pool, request);
 		return MMC_REQUEST_FAILURE;
 	}
 
-	zend_hash_internal_pointer_reset_ex(Z_ARRVAL_P(keys), &pos);
-
-	while (zend_hash_get_current_data_ex(Z_ARRVAL_P(keys), (void **)&key, &pos) == SUCCESS) {
-		zend_hash_move_forward_ex(Z_ARRVAL_P(keys), &pos);
-
-		/* re-schedule key if it does not exist in return value array */
+	ZEND_HASH_FOREACH_STR_KEY(Z_ARRVAL_P(keys), key) {
 		if (Z_TYPE_P(value_handler_param[0]) != IS_ARRAY ||
-			!zend_hash_exists(Z_ARRVAL_P(value_handler_param[0]), Z_STRVAL_PP(key), Z_STRLEN_PP(key) + 1))
-		{
-			mmc_pool_schedule_get(pool, MMC_PROTO_UDP,
-				value_handler_param[2] != NULL ? MMC_OP_GETS : MMC_OP_GET, *key,
-				request->value_handler, request->value_handler_param,
-				request->failover_handler, request->failover_handler_param, request TSRMLS_CC);
-		}
-	}
+					!zend_hash_str_exists(Z_ARRVAL_P(value_handler_param[0]), ZSTR_VAL(key), ZSTR_LEN(key)))
+				{
+					zval key_zv;
+					ZVAL_STR(&key_zv, key);
+					mmc_pool_schedule_get(pool, MMC_PROTO_UDP,
+						value_handler_param[2] != NULL ? MMC_OP_GETS : MMC_OP_GET, &key_zv,
+						request->value_handler, request->value_handler_param,
+						request->failover_handler, request->failover_handler_param, request TSRMLS_CC);
+				}
+	} ZEND_HASH_FOREACH_END();
 
 	mmc_pool_release(pool, request);
 	return MMC_OK;
@@ -1629,25 +1631,23 @@ PHP_FUNCTION(memcache_get)
 	value_handler_param[2] = cas;
 
 	if (Z_TYPE_P(keys) == IS_ARRAY) {
-		zval **key;
-		HashPosition pos;
-
+		zend_string *key;
 		/* return empty array if no keys found */
 		array_init(return_value);
 
 		failover_handler_param[0] = keys;
 		failover_handler_param[1] = value_handler_param;
 
-		zend_hash_internal_pointer_reset_ex(Z_ARRVAL_P(keys), &pos);
-		while (zend_hash_get_current_data_ex(Z_ARRVAL_P(keys), (void **)&key, &pos) == SUCCESS) {
-			zend_hash_move_forward_ex(Z_ARRVAL_P(keys), &pos);
+		ZEND_HASH_FOREACH_STR_KEY(Z_ARRVAL_P(keys), key) {
+			zval key_zv;
+			ZVAL_STR(&key_zv, key);
 
 			/* schedule request */
 			mmc_pool_schedule_get(pool, MMC_PROTO_UDP,
-				cas != NULL ? MMC_OP_GETS : MMC_OP_GET, *key,
+				cas != NULL ? MMC_OP_GETS : MMC_OP_GET, &key_zv,
 				mmc_value_handler_multi, value_handler_param,
 				mmc_value_failover_handler, failover_handler_param, NULL TSRMLS_CC);
-		}
+		} ZEND_HASH_FOREACH_END();
 	}
 	else {
 		mmc_request_t *request;
@@ -1774,7 +1774,7 @@ PHP_FUNCTION(memcache_get_stats)
 		if (mmc_pool_schedule(pool, pool->servers[i], request TSRMLS_CC) == MMC_OK) {
 			mmc_pool_run(pool TSRMLS_CC);
 
-			if (Z_TYPE_P(return_value) != IS_BOOL || Z_BVAL_P(return_value)) {
+			if ((Z_TYPE_P(return_value) != IS_TRUE && Z_TYPE_P(return_value) != IS_FALSE) || Z_BVAL_P(return_value)) {
 				break;
 			}
 		}

@@ -31,6 +31,7 @@
 #include "SAPI.h"
 #include "ext/standard/php_smart_string.h"
 #include "ext/standard/url.h"
+#include "session/php_session.h"
 #ifdef PHP_WIN32
 # if (PHP_MAJOR_VERSION > 5) || (PHP_MAJOR_VERSION == 5 && PHP_MINOR_VERSION >= 6)
 #  include "win32/time.h"
@@ -55,7 +56,7 @@ PS_OPEN_FUNC(memcache)
 	mmc_t *mmc;
 
 	php_url *url;
-	zval *params, **param;
+	zval *params, *param;
 	int i, j, path_len;
 
 	pool = mmc_pool_new(TSRMLS_C);
@@ -105,27 +106,27 @@ PS_OPEN_FUNC(memcache)
 
 				sapi_module.treat_data(PARSE_STRING, estrdup(url->query), params TSRMLS_CC);
 
-				if (zend_hash_find(Z_ARRVAL_P(params), "persistent", sizeof("persistent"), (void **) &param) != FAILURE) {
+				if ((param = zend_hash_str_find(Z_ARRVAL_P(params), "persistent", sizeof("persistent")-1)) != NULL) {
 					convert_to_boolean_ex(param);
 					persistent = Z_BVAL_PP(param);
 				}
 
-				if (zend_hash_find(Z_ARRVAL_P(params), "udp_port", sizeof("udp_port"), (void **) &param) != FAILURE) {
+				if ((param = zend_hash_str_find(Z_ARRVAL_P(params), "udp_port", sizeof("udp_port"))) != NULL) {
 					convert_to_long_ex(param);
 					udp_port = Z_LVAL_PP(param);
 				}
 
-				if (zend_hash_find(Z_ARRVAL_P(params), "weight", sizeof("weight"), (void **) &param) != FAILURE) {
+				if ((param = zend_hash_str_find(Z_ARRVAL_P(params), "weight", sizeof("weight"))) != NULL) {
 					convert_to_long_ex(param);
 					weight = Z_LVAL_PP(param);
 				}
 
-				if (zend_hash_find(Z_ARRVAL_P(params), "timeout", sizeof("timeout"), (void **) &param) != FAILURE) {
+				if ((param = zend_hash_str_find(Z_ARRVAL_P(params), "timeout", sizeof("timeout"))) != NULL) {
 					convert_to_long_ex(param);
 					timeout = Z_LVAL_PP(param);
 				}
 
-				if (zend_hash_find(Z_ARRVAL_P(params), "retry_interval", sizeof("retry_interval"), (void **) &param) != FAILURE) {
+				if ((param = zend_hash_str_find(Z_ARRVAL_P(params), "retry_interval", sizeof("retry_interval"))) != NULL) {
 					convert_to_long_ex(param);
 					retry_interval = Z_LVAL_PP(param);
 				}
@@ -279,7 +280,7 @@ PS_READ_FUNC(memcache)
 		dataparam[1] = NULL;
 		dataparam[2] = NULL;
 
-		ZVAL_STRING(&zkey, (char *)key, 0);
+		ZVAL_STRING(&zkey, (char *)key);
 
 		do {
 			/* first request tries to increment lock */
@@ -316,12 +317,12 @@ PS_READ_FUNC(memcache)
 			/* execute requests */
 			mmc_pool_run(pool TSRMLS_CC);
 
-			if ((Z_TYPE(lockresult) == IS_LONG && Z_LVAL(lockresult) == 1) || (Z_TYPE(addresult) == IS_BOOL && Z_BVAL(addresult))) {
+			if ((Z_TYPE(lockresult) == IS_LONG && Z_LVAL(lockresult) == 1) || ((Z_TYPE(addresult) == IS_TRUE || Z_TYPE(addresult) == IS_FALSE) && Z_BVAL(addresult))) {
 				if (Z_TYPE(dataresult) == IS_STRING) {
 					/* break if successfully locked with existing value */
 					mmc_queue_free(&skip_servers);
-					*val = Z_STRVAL(dataresult);
-					*vallen = Z_STRLEN(dataresult);
+					*val = zend_string_init(Z_STRVAL(dataresult), Z_STRLEN(dataresult), 1);
+					zval_ptr_dtor(&dataresult);
 					return SUCCESS;
 				}
 
@@ -374,7 +375,7 @@ PS_WRITE_FUNC(memcache)
 				pool, MMC_PROTO_TCP, mmc_stored_handler, &dataresult,
 				mmc_pool_failover_handler_null, NULL TSRMLS_CC);
 
-			if (mmc_prepare_key_ex(key, strlen(key), datarequest->key, &(datarequest->key_len)) != MMC_OK) {
+			if (mmc_prepare_key_ex(ZSTR_VAL(key), ZSTR_LEN(key), datarequest->key, &(datarequest->key_len)) != MMC_OK) {
 				mmc_pool_release(pool, datarequest);
 				break;
 			}
@@ -389,7 +390,8 @@ PS_WRITE_FUNC(memcache)
 			lockrequest->key_len = datarequest->key_len + sizeof(".lock")-1;
 
 			ZVAL_LONG(&lockvalue, 0);
-			ZVAL_STRINGL(&value, (char *)val, vallen, 0);
+			ZVAL_STRINGL(&value, ZSTR_VAL(val), ZSTR_LEN(val));
+			efree(val);
 
 			/* assemble commands to store data and reset lock */
 			if (pool->protocol->store(pool, datarequest, MMC_OP_SET, datarequest->key, datarequest->key_len, 0, INI_INT("session.gc_maxlifetime"), 0, &value TSRMLS_CC) != MMC_OK ||
