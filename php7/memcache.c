@@ -1631,20 +1631,17 @@ PHP_FUNCTION(memcache_get)
 	value_handler_param[2] = cas;
 
 	if (Z_TYPE_P(keys) == IS_ARRAY) {
-		zend_string *key;
+		zval *zv;
 		/* return empty array if no keys found */
 		array_init(return_value);
 
 		failover_handler_param[0] = keys;
 		failover_handler_param[1] = value_handler_param;
 
-		ZEND_HASH_FOREACH_STR_KEY(Z_ARRVAL_P(keys), key) {
-			zval key_zv;
-			ZVAL_STR(&key_zv, key);
-
+		ZEND_HASH_FOREACH_VAL(Z_ARRVAL_P(keys), zv) {
 			/* schedule request */
 			mmc_pool_schedule_get(pool, MMC_PROTO_UDP,
-				cas != NULL ? MMC_OP_GETS : MMC_OP_GET, &key_zv,
+				cas != NULL ? MMC_OP_GETS : MMC_OP_GET, zv,
 				mmc_value_handler_multi, value_handler_param,
 				mmc_value_failover_handler, failover_handler_param, NULL TSRMLS_CC);
 		} ZEND_HASH_FOREACH_END();
