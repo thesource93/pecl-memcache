@@ -36,6 +36,7 @@
 #include "ext/standard/php_var.h"
 #include "ext/standard/php_string.h"
 #include "ext/standard/php_smart_string.h"
+#include "zend_smart_str.h"
 #include "memcache_pool.h"
 
 ZEND_DECLARE_MODULE_GLOBALS(memcache)
@@ -392,6 +393,7 @@ int mmc_pack_value(mmc_pool_t *pool, mmc_buffer_t *buffer, zval *value, unsigned
 			php_serialize_data_t value_hash;
 			zval value_copy, *value_copy_ptr;
 			size_t prev_len = buffer->value.len;
+			smart_str buf = {0};
 
 			/* FIXME: we should be using 'Z' instead of this, but unfortunately it's PHP5-only */
 			value_copy = *value;
@@ -399,8 +401,11 @@ int mmc_pack_value(mmc_pool_t *pool, mmc_buffer_t *buffer, zval *value, unsigned
 			value_copy_ptr = &value_copy;
 
 			PHP_VAR_SERIALIZE_INIT(value_hash);
-			php_var_serialize(&(buffer->value), &value_copy_ptr, &value_hash TSRMLS_CC);
+			php_var_serialize(&buf, value_copy_ptr, &value_hash TSRMLS_CC);
 			PHP_VAR_SERIALIZE_DESTROY(value_hash);
+
+			smart_string_appendl(&(buffer->value), ZSTR_VAL(buf.s), ZSTR_LEN(buf.s));
+			smart_str_free(&buf);
 
 			/* trying to save null or something went really wrong */
 			if (buffer->value.c == NULL || buffer->value.len == prev_len) {
@@ -683,7 +688,8 @@ int mmc_request_failure(mmc_t *mmc, mmc_stream_t *io, const char *message, unsig
 static int mmc_server_connect(mmc_pool_t *pool, mmc_t *mmc, mmc_stream_t *io, int udp TSRMLS_DC) /*
 	connects a stream, calls mmc_server_deactivate() on failure {{{ */
 {
-	char *host, *hash_key = NULL, *errstr = NULL;
+	char *host, *hash_key = NULL;
+	zend_string *errstr = NULL;
 	int	host_len, errnum = 0;
 	struct timeval tv = mmc->timeout;
 	int fd;
@@ -753,7 +759,7 @@ static int mmc_server_connect(mmc_pool_t *pool, mmc_t *mmc, mmc_stream_t *io, in
 
 	/* check connection and extract socket for select() purposes */
 	if (!io->stream || php_stream_cast(io->stream, PHP_STREAM_AS_FD_FOR_SELECT, (void **)&fd, 1) != SUCCESS) {
-		mmc_server_seterror(mmc, errstr != NULL ? errstr : "Connection failed", errnum);
+		mmc_server_seterror(mmc, errstr != NULL ? ZSTR_VAL(errstr) : "Connection failed", errnum);
 		mmc_server_deactivate(pool, mmc TSRMLS_CC);
 
 		if (errstr != NULL) {
