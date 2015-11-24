@@ -429,8 +429,7 @@ int mmc_unpack_value(
 	unsigned long data_len;
 	int rv;
 
-	zval *object;
-	MAKE_STD_ZVAL(object);
+	zval object;
 
 	if (flags & MMC_COMPRESSED) {
 		if (mmc_uncompress(buffer->value.c, bytes, &data, &data_len) != MMC_OK) {
@@ -492,7 +491,7 @@ int mmc_unpack_value(
 		}
 
 		/* delegate to value handler */
-		return value_handler(key_tmp, key_len, object, flags, cas, value_handler_param TSRMLS_CC);
+		return value_handler(key_tmp, key_len, &object, flags, cas, value_handler_param TSRMLS_CC);
 	}
 	else {
 		switch (flags & 0x0f00) {
@@ -500,7 +499,7 @@ int mmc_unpack_value(
 				long val;
 				data[data_len] = '\0';
 				val = strtol(data, NULL, 10);
-				ZVAL_LONG(object, val);
+				ZVAL_LONG(&object, val);
 				break;
 			}
 
@@ -508,17 +507,17 @@ int mmc_unpack_value(
 				double val = 0;
 				data[data_len] = '\0';
 				sscanf(data, "%lg", &val);
-				ZVAL_DOUBLE(object, val);
+				ZVAL_DOUBLE(&object, val);
 				break;
 			}
 
 			case MMC_TYPE_BOOL:
-				ZVAL_BOOL(object, data_len == 1 && data[0] == '1');
+				ZVAL_BOOL(&object, data_len == 1 && data[0] == '1');
 				break;
 
 			default:
 				data[data_len] = '\0';
-				ZVAL_STRINGL(object, data, data_len);
+				ZVAL_STRINGL(&object, data, data_len);
 				efree(data);
 
 				if (!(flags & MMC_COMPRESSED)) {
@@ -528,7 +527,7 @@ int mmc_unpack_value(
 		}
 
 		/* delegate to value handler */
-		return request->value_handler(key, key_len, object, flags, cas, request->value_handler_param TSRMLS_CC);
+		return request->value_handler(key, key_len, &object, flags, cas, request->value_handler_param TSRMLS_CC);
 	}
 }
 /* }}}*/

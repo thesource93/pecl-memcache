@@ -311,13 +311,12 @@ static int mmc_request_read_mutate(mmc_t *mmc, mmc_request_t *request TSRMLS_DC)
 	header = (mmc_mutate_response_header_t *)mmc_stream_get(request->io, sizeof(*header) TSRMLS_CC);
 	if (header != NULL) {
 		int result;
-		zval *key, *value;
+		zval *key, value;
 
 		/* convert remembered key to string and unpack value */
 		key = (zval *)mmc_queue_item(&(req->keys), req->command.reqid);
 
-		MAKE_STD_ZVAL(value);
-		ZVAL_LONG(value, ntohll(header->value));
+		ZVAL_LONG(&value, ntohll(header->value));
 
 		if (Z_TYPE_P(key) != IS_STRING) {
 			zval keytmp = *key;
@@ -327,14 +326,14 @@ static int mmc_request_read_mutate(mmc_t *mmc, mmc_request_t *request TSRMLS_DC)
 			convert_to_string(&keytmp);
 
 			result = request->value_handler(
-				Z_STRVAL(keytmp), Z_STRLEN(keytmp), value,
+				Z_STRVAL(keytmp), Z_STRLEN(keytmp), &value,
 				req->value.flags, req->value.cas, request->value_handler_param TSRMLS_CC);
 
 			zval_dtor(&keytmp);
 		}
 		else {
 			result = request->value_handler(
-				Z_STRVAL_P(key), Z_STRLEN_P(key), value,
+				Z_STRVAL_P(key), Z_STRLEN_P(key), &value,
 				req->value.flags, req->value.cas, request->value_handler_param TSRMLS_CC);
 		}
 

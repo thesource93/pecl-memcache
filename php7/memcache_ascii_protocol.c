@@ -122,7 +122,7 @@ static int mmc_request_parse_mutate(mmc_t *mmc, mmc_request_t *request TSRMLS_DC
 	line_len = mmc_stream_get_line(request->io, &line TSRMLS_CC);
 	if (line_len > 0) {
 		long lval;
-		zval *value;
+		zval value;
 
 		int response = mmc_request_check_response(line, line_len);
 		if (response != MMC_RESPONSE_UNKNOWN) {
@@ -133,9 +133,8 @@ static int mmc_request_parse_mutate(mmc_t *mmc, mmc_request_t *request TSRMLS_DC
 			return mmc_server_failure(mmc, request->io, "Malformed VALUE header", 0 TSRMLS_CC);
 		}
 	
-		MAKE_STD_ZVAL(value);
-		ZVAL_LONG(value, lval);
-		return request->value_handler(request->key, request->key_len, value, 0, 0, request->value_handler_param TSRMLS_CC);
+		ZVAL_LONG(&value, lval);
+		return request->value_handler(request->key, request->key_len, &value, 0, 0, request->value_handler_param TSRMLS_CC);
 	}
 	
 	return MMC_REQUEST_MORE;

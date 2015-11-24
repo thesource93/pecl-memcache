@@ -903,6 +903,7 @@ static int mmc_stats_parse_stat(char *start, char *end, zval *result TSRMLS_DC) 
 	/* find colon delimiting subkeys */
 	if ((colon = php_memnstr(start, ":", 1, space - 1)) != NULL) {
 		zval *element, *elem;
+		zval new_element;
 		key = estrndup(start, colon - start);
 
 		/* find existing or create subkey array in result */
@@ -912,9 +913,9 @@ static int mmc_stats_parse_stat(char *start, char *end, zval *result TSRMLS_DC) 
 			element = elem;
 		}
 		else {
-			MAKE_STD_ZVAL(element);
-			array_init(element);
-			add_assoc_zval_ex(result, key, colon - start + 1, element);
+			array_init(&new_element);
+			add_assoc_zval_ex(result, key, colon - start, &new_element);
+			element = &new_element;
 		}
 
 		efree(key);
@@ -937,7 +938,7 @@ static int mmc_stats_parse_item(char *start, char *end, zval *result TSRMLS_DC) 
 {
 	char *key;
 	const char *space, *value, *value_end;
-	zval *element;
+	zval element;
 
 	if (Z_TYPE_P(result) != IS_ARRAY) {
 		array_init(result);
@@ -948,8 +949,7 @@ static int mmc_stats_parse_item(char *start, char *end, zval *result TSRMLS_DC) 
 		return 0;
 	}
 
-	MAKE_STD_ZVAL(element);
-	array_init(element);
+	array_init(&element);
 
 	/* parse each contained value */
 	for (value = php_memnstr(space, "[", 1, end); value != NULL && value <= end; value = php_memnstr(value + 1, ";", 1, end)) {
@@ -958,13 +958,13 @@ static int mmc_stats_parse_item(char *start, char *end, zval *result TSRMLS_DC) 
 		} while (*value == ' ' && value <= end);
 
 		if (value <= end && (value_end = php_memnstr(value, " ", 1, end)) != NULL && value_end <= end) {
-			add_next_index_stringl(element, value, value_end - value);
+			add_next_index_stringl(&element, value, value_end - value);
 		}
 	}
 
 	/* add parsed values under key */
 	key = estrndup(start, space - start);
-	add_assoc_zval_ex(result, key, space - start + 1, element);
+	add_assoc_zval_ex(result, key, space - start, &element);
 	efree(key);
 
 	return 1;
@@ -1790,7 +1790,7 @@ PHP_FUNCTION(memcache_get_stats)
 PHP_FUNCTION(memcache_get_extended_stats)
 {
 	mmc_pool_t *pool;
-	zval *mmc_object = getThis(), *stats;
+	zval *mmc_object = getThis(), stats;
 
 	char *host, *type = NULL;
 	int i, host_len, type_len = 0;
@@ -1820,14 +1820,13 @@ PHP_FUNCTION(memcache_get_extended_stats)
 	array_init(return_value);
 
 	for (i=0; i<pool->num_servers; i++) {
-		MAKE_STD_ZVAL(stats);
-		ZVAL_FALSE(stats);
+		ZVAL_FALSE(&stats);
 
 		host_len = spprintf(&host, 0, "%s:%u", pool->servers[i]->host, pool->servers[i]->tcp.port);
-		add_assoc_zval_ex(return_value, host, host_len + 1, stats);
+		add_assoc_zval_ex(return_value, host, host_len + 1, &stats);
 		efree(host);
 
-		request = mmc_pool_request(pool, MMC_PROTO_TCP, mmc_stats_handler, stats, NULL, NULL TSRMLS_CC);
+		request = mmc_pool_request(pool, MMC_PROTO_TCP, mmc_stats_handler, &stats, NULL, NULL TSRMLS_CC);
 		pool->protocol->stats(request, type, slabid, limit);
 
 		if (mmc_pool_schedule(pool, pool->servers[i], request TSRMLS_CC) == MMC_OK) {

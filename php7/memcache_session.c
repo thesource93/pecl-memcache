@@ -56,7 +56,7 @@ PS_OPEN_FUNC(memcache)
 	mmc_t *mmc;
 
 	php_url *url;
-	zval *params, *param;
+	zval params, *param;
 	int i, j, path_len;
 
 	pool = mmc_pool_new(TSRMLS_C);
@@ -101,32 +101,31 @@ PS_OPEN_FUNC(memcache)
 
 			/* parse parameters */
 			if (url->query != NULL) {
-				MAKE_STD_ZVAL(params);
-				array_init(params);
+				array_init(&params);
 
-				sapi_module.treat_data(PARSE_STRING, estrdup(url->query), params TSRMLS_CC);
+				sapi_module.treat_data(PARSE_STRING, estrdup(url->query), &params TSRMLS_CC);
 
-				if ((param = zend_hash_str_find(Z_ARRVAL_P(params), "persistent", sizeof("persistent")-1)) != NULL) {
+				if ((param = zend_hash_str_find(Z_ARRVAL(params), "persistent", sizeof("persistent")-1)) != NULL) {
 					convert_to_boolean_ex(param);
 					persistent = Z_BVAL_PP(param);
 				}
 
-				if ((param = zend_hash_str_find(Z_ARRVAL_P(params), "udp_port", sizeof("udp_port"))) != NULL) {
+				if ((param = zend_hash_str_find(Z_ARRVAL(params), "udp_port", sizeof("udp_port"))) != NULL) {
 					convert_to_long_ex(param);
 					udp_port = Z_LVAL_PP(param);
 				}
 
-				if ((param = zend_hash_str_find(Z_ARRVAL_P(params), "weight", sizeof("weight"))) != NULL) {
+				if ((param = zend_hash_str_find(Z_ARRVAL(params), "weight", sizeof("weight"))) != NULL) {
 					convert_to_long_ex(param);
 					weight = Z_LVAL_PP(param);
 				}
 
-				if ((param = zend_hash_str_find(Z_ARRVAL_P(params), "timeout", sizeof("timeout"))) != NULL) {
+				if ((param = zend_hash_str_find(Z_ARRVAL(params), "timeout", sizeof("timeout"))) != NULL) {
 					convert_to_long_ex(param);
 					timeout = Z_LVAL_PP(param);
 				}
 
-				if ((param = zend_hash_str_find(Z_ARRVAL_P(params), "retry_interval", sizeof("retry_interval"))) != NULL) {
+				if ((param = zend_hash_str_find(Z_ARRVAL(params), "retry_interval", sizeof("retry_interval"))) != NULL) {
 					convert_to_long_ex(param);
 					retry_interval = Z_LVAL_PP(param);
 				}
