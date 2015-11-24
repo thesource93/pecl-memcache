@@ -1030,9 +1030,9 @@ static void php_mmc_failure_callback(mmc_pool_t *pool, mmc_t *mmc, void *param T
 
 			call_user_function_ex(EG(function_table), NULL, callback, &retval, 5, params, 0, NULL TSRMLS_CC);
 
-			zval_ptr_dtor(&host);
-			zval_ptr_dtor(&tcp_port); zval_ptr_dtor(&udp_port);
-			zval_ptr_dtor(&error); zval_ptr_dtor(&errnum);
+			zval_ptr_dtor(host);
+			zval_ptr_dtor(tcp_port); zval_ptr_dtor(udp_port);
+			zval_ptr_dtor(error); zval_ptr_dtor(errnum);
 
 			if (Z_TYPE(retval) != IS_UNDEF) {
 				zval_ptr_dtor(&retval);
@@ -1054,7 +1054,7 @@ static void php_mmc_set_failure_callback(mmc_pool_t *pool, zval *mmc_object, zva
 {
 	// Decrease refcount of old mmc_object
 	if (pool->failure_callback_param) {
-		zval_ptr_dtor((zval **)&pool->failure_callback_param);
+		zval_ptr_dtor(pool->failure_callback_param);
 	}
 
 	if (callback != NULL) {
@@ -1067,7 +1067,7 @@ static void php_mmc_set_failure_callback(mmc_pool_t *pool, zval *mmc_object, zva
 
 		add_property_zval(mmc_object, "_failureCallback", callback_tmp);
 		pool->failure_callback_param = mmc_object;
-		zval_add_ref(&mmc_object);
+		zval_add_ref(mmc_object);
 
 		INIT_PZVAL(callback_tmp);
 	}

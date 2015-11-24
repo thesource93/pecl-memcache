@@ -473,7 +473,7 @@ PS_DESTROY_FUNC(memcache)
 				pool, MMC_PROTO_TCP, mmc_deleted_handler, &dataresult,
 				mmc_pool_failover_handler_null, NULL TSRMLS_CC);
 
-			if (mmc_prepare_key_ex(key, strlen(key), datarequest->key, &(datarequest->key_len)) != MMC_OK) {
+			if (mmc_prepare_key_ex(ZSTR_VAL(key), ZSTR_LEN(key), datarequest->key, &(datarequest->key_len)) != MMC_OK) {
 				mmc_pool_release(pool, datarequest);
 				break;
 			}
