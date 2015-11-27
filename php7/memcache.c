@@ -767,7 +767,7 @@ static mmc_t *php_mmc_pool_addserver(
 		return NULL;
 	}
 	/* initialize pool if need be */
-	if ((connection = zend_hash_str_find(Z_OBJPROP_P(mmc_object), "connection", sizeof("connection"))) == NULL) {
+	if ((connection = zend_hash_str_find(Z_OBJPROP_P(mmc_object), "connection", sizeof("connection")-1)) == NULL) {
 		pool = mmc_pool_new(TSRMLS_C);
 		pool->failure_callback = &php_mmc_failure_callback;
 		list_res = zend_register_resource(pool, le_memcache_pool);
@@ -839,13 +839,14 @@ static void php_mmc_connect(INTERNAL_FUNCTION_PARAMETERS, zend_bool persistent) 
 	mmc_pool_t *pool;
 	mmc_t *mmc;
 	char *host;
-	int host_len;
-	long tcp_port = MEMCACHE_G(default_port);
+	size_t host_len;
+	zend_long tcp_port = MEMCACHE_G(default_port);
 	double timeout = MMC_DEFAULT_TIMEOUT;
 
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s|ld", &host, &host_len, &tcp_port, &timeout) == FAILURE) {
 		return;
 	}
+
 	/* initialize pool and object if need be */
 	if (!mmc_object) {
 		zend_resource *list_res;
@@ -909,7 +910,7 @@ static int mmc_stats_parse_stat(char *start, char *end, zval *result TSRMLS_DC) 
 		/* find existing or create subkey array in result */
 		if ((is_numeric_string(key, colon - start, &index, NULL, 0) &&
 			(elem = zend_hash_index_find(Z_ARRVAL_P(result), index)) != NULL) ||
-			(elem = zend_hash_str_find(Z_ARRVAL_P(result), key, colon - start + 1)) != NULL) {
+			(elem = zend_hash_str_find(Z_ARRVAL_P(result), key, colon - start)) != NULL) {
 			element = elem;
 		}
 		else {
@@ -924,7 +925,7 @@ static int mmc_stats_parse_stat(char *start, char *end, zval *result TSRMLS_DC) 
 
 	/* no more subkeys, add value under last subkey */
 	key = estrndup(start, space - start);
-	add_assoc_stringl_ex(result, key, space - start + 1, space + 1, end - space);
+	add_assoc_stringl_ex(result, key, space - start, space + 1, end - space);
 	efree(key);
 
 	return 1;
@@ -1091,8 +1092,8 @@ PHP_NAMED_FUNCTION(zif_memcache_pool_connect)
 	mmc_t *mmc;
 
 	char *host;
-	int host_len;
-	long tcp_port = MEMCACHE_G(default_port), udp_port = 0, weight = 1, retry_interval = MMC_DEFAULT_RETRY;
+	size_t host_len;
+	zend_long tcp_port = MEMCACHE_G(default_port), udp_port = 0, weight = 1, retry_interval = MMC_DEFAULT_RETRY;
 	double timeout = MMC_DEFAULT_TIMEOUT;
 	zend_bool persistent = 1;
 
@@ -1787,11 +1788,12 @@ PHP_FUNCTION(memcache_get_stats)
 PHP_FUNCTION(memcache_get_extended_stats)
 {
 	mmc_pool_t *pool;
-	zval *mmc_object = getThis(), stats;
+	zval *mmc_object = getThis();
 
 	char *host, *type = NULL;
-	int i, host_len, type_len = 0;
-	long slabid = 0, limit = MMC_DEFAULT_CACHEDUMP_LIMIT;
+	int i;
+	size_t host_len, type_len = 0;
+	zend_long slabid = 0, limit = MMC_DEFAULT_CACHEDUMP_LIMIT;
 	mmc_request_t *request;
 
 	if (mmc_object == NULL) {
@@ -1817,13 +1819,15 @@ PHP_FUNCTION(memcache_get_extended_stats)
 	array_init(return_value);
 
 	for (i=0; i<pool->num_servers; i++) {
-		ZVAL_FALSE(&stats);
+		zval new_stats;
+		zval *stats;
+		ZVAL_FALSE(&new_stats);
 
 		host_len = spprintf(&host, 0, "%s:%u", pool->servers[i]->host, pool->servers[i]->tcp.port);
-		add_assoc_zval_ex(return_value, host, host_len + 1, &stats);
+		stats = zend_symtable_str_update(Z_ARRVAL_P(return_value), host, host_len, &new_stats);
 		efree(host);
 
-		request = mmc_pool_request(pool, MMC_PROTO_TCP, mmc_stats_handler, &stats, NULL, NULL TSRMLS_CC);
+		request = mmc_pool_request(pool, MMC_PROTO_TCP, mmc_stats_handler, stats, NULL, NULL TSRMLS_CC);
 		pool->protocol->stats(request, type, slabid, limit);
 
 		if (mmc_pool_schedule(pool, pool->servers[i], request TSRMLS_CC) == MMC_OK) {

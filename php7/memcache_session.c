@@ -110,22 +110,22 @@ PS_OPEN_FUNC(memcache)
 					persistent = Z_BVAL_PP(param);
 				}
 
-				if ((param = zend_hash_str_find(Z_ARRVAL(params), "udp_port", sizeof("udp_port"))) != NULL) {
+				if ((param = zend_hash_str_find(Z_ARRVAL(params), "udp_port", sizeof("udp_port")-1)) != NULL) {
 					convert_to_long_ex(param);
 					udp_port = Z_LVAL_PP(param);
 				}
 
-				if ((param = zend_hash_str_find(Z_ARRVAL(params), "weight", sizeof("weight"))) != NULL) {
+				if ((param = zend_hash_str_find(Z_ARRVAL(params), "weight", sizeof("weight")-1)) != NULL) {
 					convert_to_long_ex(param);
 					weight = Z_LVAL_PP(param);
 				}
 
-				if ((param = zend_hash_str_find(Z_ARRVAL(params), "timeout", sizeof("timeout"))) != NULL) {
+				if ((param = zend_hash_str_find(Z_ARRVAL(params), "timeout", sizeof("timeout")-1)) != NULL) {
 					convert_to_long_ex(param);
 					timeout = Z_LVAL_PP(param);
 				}
 
-				if ((param = zend_hash_str_find(Z_ARRVAL(params), "retry_interval", sizeof("retry_interval"))) != NULL) {
+				if ((param = zend_hash_str_find(Z_ARRVAL(params), "retry_interval", sizeof("retry_interval")-1)) != NULL) {
 					convert_to_long_ex(param);
 					retry_interval = Z_LVAL_PP(param);
 				}
