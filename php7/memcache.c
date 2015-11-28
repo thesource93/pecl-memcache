@@ -370,14 +370,9 @@ static int mmc_get_pool(zval *id, mmc_pool_t **pool TSRMLS_DC) /* {{{ */
 		return 0;
 	}
 
-	if ((*pool = zend_fetch_resource_ex(zv, "connection", le_memcache_pool)) == NULL) {
-			php_error_docref(NULL, E_WARNING, "No connection on MemcachePool connection");
+	if (Z_TYPE_P(zv) != IS_RESOURCE || (*pool = zend_fetch_resource_ex(zv, "connection", le_memcache_pool)) == NULL) {
+			php_error_docref(NULL, E_WARNING, "Invalid MemcachePool->connection member variable");
 			return 0;
-	}
-
-	if (!*pool) {
-		php_error_docref(NULL, E_WARNING, "Invalid MemcachePool->connection member variable");
-		return 0;
 	}
 
 	return 1;
