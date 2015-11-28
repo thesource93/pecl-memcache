@@ -348,7 +348,7 @@ struct mmc_pool {
 	double					min_compress_savings;
 	unsigned int			compress_threshold;
 	mmc_failure_callback	failure_callback;			/* receives notification when a server fails */
-	void					*failure_callback_param;
+	zval					failure_callback_param;
 };
 
 /* server functions */

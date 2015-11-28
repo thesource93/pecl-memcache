@@ -264,7 +264,7 @@ PHP_INI_END()
 static void _mmc_pool_list_dtor(zend_resource* TSRMLS_DC);
 static void _mmc_server_list_dtor(zend_resource* TSRMLS_DC);
 static void php_mmc_set_failure_callback(mmc_pool_t *, zval *, zval * TSRMLS_DC);
-static void php_mmc_failure_callback(mmc_pool_t *, mmc_t *, void * TSRMLS_DC);
+static void php_mmc_failure_callback(mmc_pool_t *, mmc_t *, zval * TSRMLS_DC);
 /* }}} */
 
 /* {{{ php_memcache_init_globals()
@@ -346,9 +346,9 @@ static void _mmc_pool_list_dtor(zend_resource *rsrc TSRMLS_DC) /* {{{ */
 {
 	mmc_pool_t *pool = (mmc_pool_t *)rsrc->ptr;
 
-	if (pool->failure_callback_param) {
-		zval_ptr_dtor((zval *)pool->failure_callback_param);
-		pool->failure_callback_param = NULL;
+	if (!Z_ISUNDEF(pool->failure_callback_param)) {
+		Z_DELREF(pool->failure_callback_param);
+		ZVAL_UNDEF(&pool->failure_callback_param);
 	}
 
 	mmc_pool_free(pool TSRMLS_CC);
@@ -994,12 +994,12 @@ static int mmc_stats_parse_generic(char *start, char *end, zval *result TSRMLS_D
 }
 /* }}} */
 
-static void php_mmc_failure_callback(mmc_pool_t *pool, mmc_t *mmc, void *param TSRMLS_DC) /* {{{ */
+static void php_mmc_failure_callback(mmc_pool_t *pool, mmc_t *mmc, zval *param TSRMLS_DC) /* {{{ */
 {
 	zval *callback;
 
 	/* check for userspace callback */
-	if (param != NULL && (callback = zend_hash_str_find(Z_OBJPROP_P((zval *)param), "_failureCallback", sizeof("_failureCallback"))) != NULL && Z_TYPE_P(callback) != IS_NULL) {
+	if (!Z_ISUNDEF_P(param) && (callback = zend_hash_str_find(Z_OBJPROP_P((zval *)param), "_failureCallback", sizeof("_failureCallback"))) != NULL && Z_TYPE_P(callback) != IS_NULL) {
 		if (MEMCACHE_IS_CALLABLE(callback, 0, NULL)) {
 			zval retval;
 			zval *host, *tcp_port, *udp_port, *error, *errnum;
@@ -1049,27 +1049,23 @@ static void php_mmc_failure_callback(mmc_pool_t *pool, mmc_t *mmc, void *param T
 static void php_mmc_set_failure_callback(mmc_pool_t *pool, zval *mmc_object, zval *callback TSRMLS_DC)  /* {{{ */
 {
 	// Decrease refcount of old mmc_object
-	if (pool->failure_callback_param) {
-		zval_ptr_dtor(pool->failure_callback_param);
+	if (!Z_ISUNDEF(pool->failure_callback_param)) {
+		Z_DELREF(pool->failure_callback_param);
 	}
 
 	if (callback != NULL) {
-		zval *callback_tmp;
-		ALLOC_ZVAL(callback_tmp);
+		zval callback_tmp;
 
-		*callback_tmp = *callback;
-		zval_copy_ctor(callback_tmp);
-		INIT_PZVAL(callback_tmp);
+		callback_tmp = *callback;
+		zval_copy_ctor(&callback_tmp);
 
-		add_property_zval(mmc_object, "_failureCallback", callback_tmp);
-		pool->failure_callback_param = mmc_object;
-		zval_add_ref(mmc_object);
-
-		INIT_PZVAL(callback_tmp);
+		add_property_zval(mmc_object, "_failureCallback", &callback_tmp);
+		pool->failure_callback_param = *mmc_object;
+		Z_ADDREF_P(mmc_object);
 	}
 	else {
 		add_property_null(mmc_object, "_failureCallback");
-		pool->failure_callback_param = NULL;
+		ZVAL_UNDEF(&pool->failure_callback_param);
 	}
 }
 /* }}} */
@@ -1145,8 +1141,8 @@ PHP_NAMED_FUNCTION(zif_memcache_pool_addserver)
 	mmc_t *mmc;
 
 	char *host;
-	int host_len;
-	long tcp_port = MEMCACHE_G(default_port), udp_port = 0, weight = 1, retry_interval = MMC_DEFAULT_RETRY;
+	size_t host_len;
+	zend_long tcp_port = MEMCACHE_G(default_port), udp_port = 0, weight = 1, retry_interval = MMC_DEFAULT_RETRY;
 	double timeout = MMC_DEFAULT_TIMEOUT;
 	zend_bool persistent = 1, status = 1;
 

@@ -651,7 +651,7 @@ static void mmc_server_deactivate(mmc_pool_t *pool, mmc_t *mmc TSRMLS_DC) /*
 
 	/* fire userspace failure event */
 	if (pool->failure_callback != NULL) {
-		pool->failure_callback(pool, mmc, pool->failure_callback_param TSRMLS_CC);
+		pool->failure_callback(pool, mmc, &pool->failure_callback_param TSRMLS_CC);
 	}
 }
 /* }}} */
