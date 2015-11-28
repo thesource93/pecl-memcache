@@ -999,7 +999,7 @@ static void php_mmc_failure_callback(mmc_pool_t *pool, mmc_t *mmc, zval *param T
 	zval *callback;
 
 	/* check for userspace callback */
-	if (!Z_ISUNDEF_P(param) && (callback = zend_hash_str_find(Z_OBJPROP_P((zval *)param), "_failureCallback", sizeof("_failureCallback"))) != NULL && Z_TYPE_P(callback) != IS_NULL) {
+	if (!Z_ISUNDEF_P(param) && (callback = zend_hash_str_find(Z_OBJPROP_P((zval *)param), "_failureCallback", sizeof("_failureCallback")-1)) != NULL && Z_TYPE_P(callback) != IS_NULL) {
 		if (MEMCACHE_IS_CALLABLE(callback, 0, NULL)) {
 			zval retval;
 			zval *host, *tcp_port, *udp_port, *error, *errnum;
@@ -1060,6 +1060,9 @@ static void php_mmc_set_failure_callback(mmc_pool_t *pool, zval *mmc_object, zva
 		zval_copy_ctor(&callback_tmp);
 
 		add_property_zval(mmc_object, "_failureCallback", &callback_tmp);
+
+		zval_ptr_dtor(&callback_tmp);
+
 		pool->failure_callback_param = *mmc_object;
 		Z_ADDREF_P(mmc_object);
 	}
@@ -1247,10 +1250,11 @@ PHP_FUNCTION(memcache_set_server_params)
 	zval *mmc_object = getThis(), *failure_callback = NULL;
 	mmc_pool_t *pool;
 	mmc_t *mmc = NULL;
-	long tcp_port = MEMCACHE_G(default_port), retry_interval = MMC_DEFAULT_RETRY;
+	zend_long tcp_port = MEMCACHE_G(default_port), retry_interval = MMC_DEFAULT_RETRY;
 	double timeout = MMC_DEFAULT_TIMEOUT;
 	zend_bool status = 1;
-	int host_len, i;
+	size_t host_len;
+	int i;
 	char *host;
 
 	if (mmc_object) {
