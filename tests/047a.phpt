@@ -2,11 +2,12 @@
 memcache->get() with flags (PHP 5 only)
 --SKIPIF--
 <?php include 'connect.inc'; if (!isset($host2)) die('skip $host2 not set'); ?>
-<?php if (version_compare(phpversion(), '7.0.0', '>=')) die('skip requires PHP 5'); ?>
+<?php if (version_compare(phpversion(), '7', '>=')) die('skip requires PHP 5 '); ?>
 --FILE--
 <?php
 
 include 'connect.inc';
+print phpversion();
 
 $flag1 = 0x10000;
 
