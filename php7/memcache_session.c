@@ -107,27 +107,27 @@ PS_OPEN_FUNC(memcache)
 
 				if ((param = zend_hash_str_find(Z_ARRVAL(params), "persistent", sizeof("persistent")-1)) != NULL) {
 					convert_to_boolean_ex(param);
-					persistent = Z_BVAL_PP(param);
+					persistent = Z_TYPE_P(param) == IS_TRUE;
 				}
 
 				if ((param = zend_hash_str_find(Z_ARRVAL(params), "udp_port", sizeof("udp_port")-1)) != NULL) {
 					convert_to_long_ex(param);
-					udp_port = Z_LVAL_PP(param);
+					udp_port = Z_LVAL_P(param);
 				}
 
 				if ((param = zend_hash_str_find(Z_ARRVAL(params), "weight", sizeof("weight")-1)) != NULL) {
 					convert_to_long_ex(param);
-					weight = Z_LVAL_PP(param);
+					weight = Z_LVAL_P(param);
 				}
 
 				if ((param = zend_hash_str_find(Z_ARRVAL(params), "timeout", sizeof("timeout")-1)) != NULL) {
 					convert_to_long_ex(param);
-					timeout = Z_LVAL_PP(param);
+					timeout = Z_LVAL_P(param);
 				}
 
 				if ((param = zend_hash_str_find(Z_ARRVAL(params), "retry_interval", sizeof("retry_interval")-1)) != NULL) {
 					convert_to_long_ex(param);
-					retry_interval = Z_LVAL_PP(param);
+					retry_interval = Z_LVAL_P(param);
 				}
 
 				zval_ptr_dtor(&params);
@@ -279,7 +279,7 @@ PS_READ_FUNC(memcache)
 		dataparam[1] = NULL;
 		dataparam[2] = NULL;
 
-		ZVAL_STRING(&zkey, (char *)key);
+		ZVAL_STR(&zkey, key);
 
 		do {
 			/* first request tries to increment lock */
@@ -316,7 +316,7 @@ PS_READ_FUNC(memcache)
 			/* execute requests */
 			mmc_pool_run(pool TSRMLS_CC);
 
-			if ((Z_TYPE(lockresult) == IS_LONG && Z_LVAL(lockresult) == 1) || ((Z_TYPE(addresult) == IS_TRUE || Z_TYPE(addresult) == IS_FALSE) && Z_BVAL(addresult))) {
+			if ((Z_TYPE(lockresult) == IS_LONG && Z_LVAL(lockresult) == 1) || ((Z_TYPE(addresult) == IS_TRUE || Z_TYPE(addresult) == IS_FALSE) && Z_TYPE(addresult) == IS_TRUE)) {
 				if (Z_TYPE(dataresult) == IS_STRING) {
 					/* break if successfully locked with existing value */
 					mmc_queue_free(&skip_servers);
@@ -389,8 +389,7 @@ PS_WRITE_FUNC(memcache)
 			lockrequest->key_len = datarequest->key_len + sizeof(".lock")-1;
 
 			ZVAL_LONG(&lockvalue, 0);
-			ZVAL_STRINGL(&value, ZSTR_VAL(val), ZSTR_LEN(val));
-			efree(val);
+			ZVAL_STR(&value, val);
 
 			/* assemble commands to store data and reset lock */
 			if (pool->protocol->store(pool, datarequest, MMC_OP_SET, datarequest->key, datarequest->key_len, 0, INI_INT("session.gc_maxlifetime"), 0, &value TSRMLS_CC) != MMC_OK ||
@@ -418,7 +417,7 @@ PS_WRITE_FUNC(memcache)
 		/* execute requests */
 		mmc_pool_run(pool TSRMLS_CC);
 
-		if (Z_BVAL(lockresult) && Z_BVAL(dataresult)) {
+		if (Z_TYPE(lockresult) == IS_TRUE && Z_TYPE(dataresult) == IS_TRUE) {
 			return SUCCESS;
 		}
 	}
@@ -509,7 +508,7 @@ PS_DESTROY_FUNC(memcache)
 		/* execute requests */
 		mmc_pool_run(pool TSRMLS_CC);
 
-		if (Z_BVAL(lockresult) && Z_BVAL(dataresult)) {
+		if (Z_TYPE(lockresult) == IS_TRUE && Z_TYPE(dataresult) == IS_TRUE) {
 			return SUCCESS;
 		}
 	}

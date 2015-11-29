@@ -1767,7 +1767,7 @@ PHP_FUNCTION(memcache_get_stats)
 		if (mmc_pool_schedule(pool, pool->servers[i], request TSRMLS_CC) == MMC_OK) {
 			mmc_pool_run(pool TSRMLS_CC);
 
-			if ((Z_TYPE_P(return_value) != IS_TRUE && Z_TYPE_P(return_value) != IS_FALSE) || Z_BVAL_P(return_value)) {
+			if (Z_TYPE_P(return_value) != IS_FALSE) {
 				break;
 			}
 		}
