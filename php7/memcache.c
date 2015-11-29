@@ -1583,21 +1583,19 @@ static int mmc_value_failover_handler(mmc_pool_t *pool, mmc_t *mmc, mmc_request_
 	uses keys and return value to reschedule requests to other servers, param is a zval ** pointer {{{ */
 {
 	zval *keys = ((zval **)param)[0], **value_handler_param = (zval **)((void **)param)[1];
-	zend_string *key;
+	zval *key;
 
 	if (!MEMCACHE_G(allow_failover) || request->failed_servers.len >= MEMCACHE_G(max_failover_attempts)) {
 		mmc_pool_release(pool, request);
 		return MMC_REQUEST_FAILURE;
 	}
 
-	ZEND_HASH_FOREACH_STR_KEY(Z_ARRVAL_P(keys), key) {
+	ZEND_HASH_FOREACH_VAL(Z_ARRVAL_P(keys), key) {
 		if (Z_TYPE_P(value_handler_param[0]) != IS_ARRAY ||
-					!zend_hash_str_exists(Z_ARRVAL_P(value_handler_param[0]), ZSTR_VAL(key), ZSTR_LEN(key)))
+					!zend_hash_str_exists(Z_ARRVAL_P(value_handler_param[0]), Z_STRVAL_P(key), Z_STRLEN_P(key)))
 				{
-					zval key_zv;
-					ZVAL_STR(&key_zv, key);
 					mmc_pool_schedule_get(pool, MMC_PROTO_UDP,
-						value_handler_param[2] != NULL ? MMC_OP_GETS : MMC_OP_GET, &key_zv,
+						value_handler_param[2] != NULL ? MMC_OP_GETS : MMC_OP_GET, key,
 						request->value_handler, request->value_handler_param,
 						request->failover_handler, request->failover_handler_param, request TSRMLS_CC);
 				}
