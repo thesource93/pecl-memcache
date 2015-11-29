@@ -36,13 +36,13 @@ typedef struct mmc_ascii_request {
 	} value;
 } mmc_ascii_request_t;
 
-static int mmc_server_read_value(mmc_t *, mmc_request_t * TSRMLS_DC);
+static int mmc_server_read_value(mmc_t *, mmc_request_t *);
 
-static int mmc_stream_get_line(mmc_stream_t *io, char **line TSRMLS_DC) /* 
+static int mmc_stream_get_line(mmc_stream_t *io, char **line) /* 
 	attempts to read a line from server, returns the line size or 0 if no complete line was available {{{ */
 {
 	size_t returned_len = 0;
-	io->readline(io, io->input.value + io->input.idx, MMC_BUFFER_SIZE - io->input.idx, &returned_len TSRMLS_CC);
+	io->readline(io, io->input.value + io->input.idx, MMC_BUFFER_SIZE - io->input.idx, &returned_len);
 	io->input.idx += returned_len;
 	
 	if (io->input.idx && io->input.value[io->input.idx - 1] == '\n') {
@@ -98,64 +98,64 @@ static int mmc_request_check_response(const char *line, int line_len) /*
 	return response;
 }
 
-static int mmc_request_parse_response(mmc_t *mmc, mmc_request_t *request TSRMLS_DC) /* 
+static int mmc_request_parse_response(mmc_t *mmc, mmc_request_t *request) /* 
 	reads a generic response header and delegates it to response_handler {{{ */
 {
 	char *line;
-	int line_len = mmc_stream_get_line(request->io, &line TSRMLS_CC);
+	int line_len = mmc_stream_get_line(request->io, &line);
 	
 	if (line_len > 0) {
 		int response = mmc_request_check_response(line, line_len);
-		return request->response_handler(mmc, request, response, line, line_len - (sizeof("\r\n")-1), request->response_handler_param TSRMLS_CC);
+		return request->response_handler(mmc, request, response, line, line_len - (sizeof("\r\n")-1), request->response_handler_param);
 	}
 	
 	return MMC_REQUEST_MORE;
 }
 /* }}}*/
 
-static int mmc_request_parse_mutate(mmc_t *mmc, mmc_request_t *request TSRMLS_DC) /* 
+static int mmc_request_parse_mutate(mmc_t *mmc, mmc_request_t *request) /* 
 	reads and parses the <long-value> response header {{{ */
 {
 	char *line;
 	int line_len;
 	
-	line_len = mmc_stream_get_line(request->io, &line TSRMLS_CC);
+	line_len = mmc_stream_get_line(request->io, &line);
 	if (line_len > 0) {
 		long lval;
 		zval value;
 
 		int response = mmc_request_check_response(line, line_len);
 		if (response != MMC_RESPONSE_UNKNOWN) {
-			return request->response_handler(mmc, request, response, line, line_len - (sizeof("\r\n")-1), request->response_handler_param TSRMLS_CC);
+			return request->response_handler(mmc, request, response, line, line_len - (sizeof("\r\n")-1), request->response_handler_param);
 		}
 
 		if (sscanf(line, "%lu", &lval) < 1) {
-			return mmc_server_failure(mmc, request->io, "Malformed VALUE header", 0 TSRMLS_CC);
+			return mmc_server_failure(mmc, request->io, "Malformed VALUE header", 0);
 		}
 	
 		ZVAL_LONG(&value, lval);
-		return request->value_handler(request->key, request->key_len, &value, 0, 0, request->value_handler_param TSRMLS_CC);
+		return request->value_handler(request->key, request->key_len, &value, 0, 0, request->value_handler_param);
 	}
 	
 	return MMC_REQUEST_MORE;
 }
 /* }}}*/
 
-static int mmc_request_parse_value(mmc_t *mmc, mmc_request_t *request TSRMLS_DC) /* 
+static int mmc_request_parse_value(mmc_t *mmc, mmc_request_t *request) /* 
 	reads and parses the VALUE <key> <flags> <size> <cas> response header and then reads the value body {{{ */
 {
 	char *line;
 	int line_len;
 	mmc_ascii_request_t *req = (mmc_ascii_request_t *)request;
 	
-	line_len = mmc_stream_get_line(request->io, &line TSRMLS_CC);
+	line_len = mmc_stream_get_line(request->io, &line);
 	if (line_len > 0) {
 		if (mmc_str_left(line, "END", line_len, sizeof("END")-1)) {
 			return MMC_REQUEST_DONE;
 		}
 		
 		if (sscanf(line, MMC_VALUE_HEADER, req->value.key, &(req->value.flags), &(req->value.length), &(req->value.cas)) < 3) {
-			return mmc_server_failure(mmc, request->io, "Malformed VALUE header", 0 TSRMLS_CC);
+			return mmc_server_failure(mmc, request->io, "Malformed VALUE header", 0);
 		}
 		
 		/* memory for data + \r\n */
@@ -172,12 +172,12 @@ static int mmc_request_parse_value(mmc_t *mmc, mmc_request_t *request TSRMLS_DC)
 }
 /* }}}*/
 
-static int mmc_server_read_value(mmc_t *mmc, mmc_request_t *request TSRMLS_DC) /* 
+static int mmc_server_read_value(mmc_t *mmc, mmc_request_t *request) /* 
 	read the value body into the buffer {{{ */
 {
 	mmc_ascii_request_t *req = (mmc_ascii_request_t *)request;
 	request->readbuf.idx += 
-		request->io->read(request->io, request->readbuf.value.c + request->readbuf.idx, req->value.length + 2 - request->readbuf.idx TSRMLS_CC);
+		request->io->read(request->io, request->readbuf.value.c + request->readbuf.idx, req->value.length + 2 - request->readbuf.idx);
 
 	/* done reading? */
 	if (request->readbuf.idx >= req->value.length + 2) {
@@ -189,7 +189,7 @@ static int mmc_server_read_value(mmc_t *mmc, mmc_request_t *request TSRMLS_DC) /
 
 		result = mmc_unpack_value(
 			mmc, request, &(request->readbuf), req->value.key, strlen(req->value.key), 
-			req->value.flags, req->value.cas, req->value.length TSRMLS_CC);
+			req->value.flags, req->value.cas, req->value.length);
 		
 		/* request more data (END line) */
 		if (result == MMC_REQUEST_DONE) {
@@ -259,14 +259,14 @@ static void mmc_ascii_get(mmc_request_t *request, int op, zval *zkey, const char
 
 static int mmc_ascii_store(
 	mmc_pool_t *pool, mmc_request_t *request, int op, const char *key, unsigned int key_len, 
-	unsigned int flags, unsigned int exptime, unsigned long cas, zval *value TSRMLS_DC) /* {{{ */ 
+	unsigned int flags, unsigned int exptime, unsigned long cas, zval *value) /* {{{ */ 
 {
 	int status;
 	mmc_buffer_t buffer;
 	request->parse = mmc_request_parse_response;
 
 	memset(&buffer, 0, sizeof(buffer));
-	status = mmc_pack_value(pool, &buffer, value, &flags TSRMLS_CC);
+	status = mmc_pack_value(pool, &buffer, value, &flags);
 	
 	if (status != MMC_OK) {
 		return status;
@@ -396,7 +396,7 @@ static void mmc_ascii_stats(mmc_request_t *request, const char *type, long slabi
 }
 /* }}} */
 
-static void mmc_set_sasl_auth_data(mmc_pool_t *pool, mmc_request_t *request, const char *user,  const char *password TSRMLS_DC) /* {{{ */
+static void mmc_set_sasl_auth_data(mmc_pool_t *pool, mmc_request_t *request, const char *user,  const char *password) /* {{{ */
 {
 	/* stats not supported */
 }

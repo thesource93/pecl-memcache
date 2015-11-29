@@ -73,7 +73,7 @@ PHP_FUNCTION(memcache_set_sasl_auth_data);
 #define MMC_DEFAULT_CACHEDUMP_LIMIT	100		/* number of entries */
 
 #if (PHP_MAJOR_VERSION == 5) && (PHP_MINOR_VERSION >= 3)
-#   define MEMCACHE_IS_CALLABLE(cb_zv, flags, cb_sp) zend_is_callable((cb_zv), (flags), (cb_sp) TSRMLS_CC)
+#   define MEMCACHE_IS_CALLABLE(cb_zv, flags, cb_sp) zend_is_callable((cb_zv), (flags), (cb_sp))
 #else
 #   define MEMCACHE_IS_CALLABLE(cb_zv, flags, cb_sp) zend_is_callable((cb_zv), (flags), (cb_sp))
 #endif
@@ -81,14 +81,14 @@ PHP_FUNCTION(memcache_set_sasl_auth_data);
 #if (PHP_MAJOR_VERSION == 5 && PHP_MINOR_VERSION == 3)
 #	define MEMCACHE_LIST_INSERT(list, val) zend_list_insert((list), (val))
 #else
-#	define MEMCACHE_LIST_INSERT(list, val) zend_list_insert((list), (val) TSRMLS_CC)
+#	define MEMCACHE_LIST_INSERT(list, val) zend_list_insert((list), (val))
 #endif
 /* internal functions */
-mmc_t *mmc_find_persistent(const char *, int, unsigned short, unsigned short, double, int TSRMLS_DC);
-int mmc_value_handler_single(const char *, unsigned int, zval *, unsigned int, unsigned long, void * TSRMLS_DC);
-int mmc_value_handler_multi(const char *, unsigned int, zval *, unsigned int, unsigned long, void * TSRMLS_DC);
-int mmc_stored_handler(mmc_t *, mmc_request_t *, int, const char *, unsigned int, void * TSRMLS_DC);
-int mmc_numeric_response_handler(mmc_t *, mmc_request_t *, int, const char *, unsigned int, void * TSRMLS_DC);
+mmc_t *mmc_find_persistent(const char *, int, unsigned short, unsigned short, double, int);
+int mmc_value_handler_single(const char *, unsigned int, zval *, unsigned int, unsigned long, void *);
+int mmc_value_handler_multi(const char *, unsigned int, zval *, unsigned int, unsigned long, void *);
+int mmc_stored_handler(mmc_t *, mmc_request_t *, int, const char *, unsigned int, void *);
+int mmc_numeric_response_handler(mmc_t *, mmc_request_t *, int, const char *, unsigned int, void *);
 
 /* session handler struct */
 #if HAVE_MEMCACHE_SESSION
