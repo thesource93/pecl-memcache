@@ -429,7 +429,7 @@ static void php_mmc_store(INTERNAL_FUNCTION_PARAMETERS, int op) /* {{{ */
 	mmc_pool_t *pool;
 	mmc_request_t *request;
 	zval *keys, *value = 0, *mmc_object = getThis();
-	long flags = 0, exptime = 0, cas = 0;
+	zend_long flags = 0, exptime = 0, cas = 0;
 
 	if (mmc_object == NULL) {
 		if (zend_parse_parameters(ZEND_NUM_ARGS(), "Oz|zlll", &mmc_object, memcache_pool_ce, &keys, &value, &flags, &exptime, &cas) == FAILURE) {
@@ -1385,8 +1385,9 @@ PHP_FUNCTION(memcache_get_server_status)
 	zval *mmc_object = getThis();
 	mmc_pool_t *pool;
 	mmc_t *mmc = NULL;
-	long tcp_port = MEMCACHE_G(default_port);
-	int host_len, i;
+	zend_long tcp_port = MEMCACHE_G(default_port);
+	size_t host_len
+	int i;
 	char *host;
 
 	if (mmc_object) {
@@ -1740,8 +1741,9 @@ PHP_FUNCTION(memcache_get_stats)
 	zval *mmc_object = getThis();
 
 	char *type = NULL;
-	int i, type_len = 0;
-	long slabid = 0, limit = MMC_DEFAULT_CACHEDUMP_LIMIT;
+	int i;
+	size_t type_len = 0;
+	zend_long slabid = 0, limit = MMC_DEFAULT_CACHEDUMP_LIMIT;
 	mmc_request_t *request;
 
 	if (mmc_object == NULL) {
@@ -1848,7 +1850,7 @@ PHP_FUNCTION(memcache_set_compress_threshold)
 {
 	mmc_pool_t *pool;
 	zval *mmc_object = getThis();
-	long threshold;
+	zend_long threshold;
 	double min_savings = MMC_DEFAULT_SAVINGS;
 
 	if (mmc_object == NULL) {
@@ -1964,7 +1966,7 @@ PHP_FUNCTION(memcache_flush)
 
 	mmc_request_t *request;
 	unsigned int i, responses = 0;
-	long delay = 0;
+	zend_long delay = 0;
 
 	if (mmc_object == NULL) {
 		if (zend_parse_parameters(ZEND_NUM_ARGS(), "O|l", &mmc_object, memcache_pool_ce, &delay) == FAILURE) {
@@ -2007,9 +2009,9 @@ PHP_FUNCTION(memcache_set_sasl_auth_data)
 {
 	zval *mmc_object = getThis();
 	char *user;
-	long user_length;
+	size_t user_length;
 	char *password;
-	long password_length;
+	size_t password_length;
 
 	if (mmc_object == NULL) {
 		if (zend_parse_parameters(ZEND_NUM_ARGS(), "Oss", &mmc_object, memcache_pool_ce, &user, &user_length, &password, &password_length) == FAILURE) {
