@@ -7,7 +7,6 @@ memcache->get() with flags (PHP 5 only)
 <?php
 
 include 'connect.inc';
-print phpversion();
 
 $flag1 = 0x10000;
 
