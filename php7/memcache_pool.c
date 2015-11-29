@@ -386,7 +386,7 @@ int mmc_pack_value(mmc_pool_t *pool, mmc_buffer_t *buffer, zval *value, unsigned
 		case IS_FALSE:
 			*flags |= MMC_TYPE_BOOL;
 			*flags &= ~MMC_COMPRESSED;
-			smart_string_appendc(&(buffer->value), Z_BVAL_P(value) ? '1' : '0');
+			smart_string_appendc(&(buffer->value), Z_TYPE_P(value) == IS_TRUE ? '1' : '0');
 			break;
 
 		default: {
