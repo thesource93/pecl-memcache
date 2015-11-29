@@ -566,7 +566,7 @@ static void php_mmc_numeric(INTERNAL_FUNCTION_PARAMETERS, int deleted, int inver
 	zval *mmc_object = getThis();
 
 	zval *keys;
-	long value = 1, defval = 0, exptime = 0;
+	zend_long value = 1, defval = 0, exptime = 0;
 	mmc_request_t *request;
 	void *value_handler_param[3];
 	int defval_used = 0;
@@ -609,8 +609,7 @@ static void php_mmc_numeric(INTERNAL_FUNCTION_PARAMETERS, int deleted, int inver
 	value_handler_param[2] = NULL;
 
 	if (Z_TYPE_P(keys) == IS_ARRAY) {
-		zend_string *key;
-		zval *val;
+		zval *key;
 		zend_ulong key_index;
 
 		if (deleted) {
@@ -622,9 +621,7 @@ static void php_mmc_numeric(INTERNAL_FUNCTION_PARAMETERS, int deleted, int inver
 			array_init(return_value);
 		}
 
-		ZEND_HASH_FOREACH_STR_KEY_VAL(Z_ARRVAL_P(keys), key, val) {
-			zval key_zv;
-
+		ZEND_HASH_FOREACH_VAL(Z_ARRVAL_P(keys), key) {
 			/* allocate request */
 			request = mmc_pool_request(
 					pool, MMC_PROTO_TCP, mmc_numeric_response_handler, return_value,
@@ -633,9 +630,7 @@ static void php_mmc_numeric(INTERNAL_FUNCTION_PARAMETERS, int deleted, int inver
 			request->value_handler = mmc_value_handler_multi;
 			request->value_handler_param = value_handler_param;
 
-			ZVAL_STR(&key_zv, key);
-
-			if (mmc_prepare_key(&key_zv, request->key, &(request->key_len)) != MMC_OK) {
+			if (mmc_prepare_key(key, request->key, &(request->key_len)) != MMC_OK) {
 				mmc_pool_release(pool, request);
 				php_error_docref(NULL TSRMLS_CC, E_WARNING, "Invalid key");
 				continue;
@@ -645,7 +640,7 @@ static void php_mmc_numeric(INTERNAL_FUNCTION_PARAMETERS, int deleted, int inver
 				pool->protocol->delete(request, request->key, request->key_len, exptime);
 			}
 			else {
-				pool->protocol->mutate(request, &key_zv, request->key, request->key_len, invert ? -value : value, defval, defval_used, exptime);
+				pool->protocol->mutate(request, key, request->key, request->key_len, invert ? -value : value, defval, defval_used, exptime);
 			}
 
 			/* schedule request */
