@@ -147,7 +147,7 @@ typedef struct mmc_response_header {
 	uint16_t	status;
 	uint32_t	length;				/* trailing body length (not including this header) */
 	uint32_t	reqid;				/* echo'ed from request */
-	uint64_t    cas;
+	uint64_t	cas;
 } mmc_response_header_t;
 
 typedef struct mmc_get_response_header {
@@ -165,32 +165,31 @@ static int mmc_request_read_value(mmc_t *, mmc_request_t *);
 void mmc_binary_hexdump(void *mem, unsigned int len)
 {
 #	define HEXDUMP_COLS 4
-        unsigned int i, j;
-        
-        for(i = 0; i < len + ((len % HEXDUMP_COLS) ? (HEXDUMP_COLS - len % HEXDUMP_COLS) : 0); i++) {
-                if(i % HEXDUMP_COLS == 0) {
-					printf("%06i: ", i);
-                }
- 
-                if(i < len) {
-                        printf("%02x ", 0xFF & ((char*)mem)[i]);
-                } else {
-                        printf("   ");
-                }
-                
-                if(i % HEXDUMP_COLS == (HEXDUMP_COLS - 1)) {
-                        for(j = i - (HEXDUMP_COLS - 1); j <= i; j++) {
-                                if(j >= len) {
-                                        putchar(' ');
-                                } else if(isprint(((char*)mem)[j])) {
-                                        putchar(0xFF & ((char*)mem)[j]);        
-                                } else {
-                                        putchar('.');
-                                }
-                        }
-                        putchar('\n');
-                }
-        }
+	unsigned int i, j;
+	for(i = 0; i < len + ((len % HEXDUMP_COLS) ? (HEXDUMP_COLS - len % HEXDUMP_COLS) : 0); i++) {
+		if(i % HEXDUMP_COLS == 0) {
+			printf("%06i: ", i);
+		}
+
+		if(i < len) {
+			printf("%02x ", 0xFF & ((char*)mem)[i]);
+		} else {
+			printf("   ");
+		}
+
+		if(i % HEXDUMP_COLS == (HEXDUMP_COLS - 1)) {
+			for(j = i - (HEXDUMP_COLS - 1); j <= i; j++) {
+				if(j >= len) {
+					putchar(' ');
+				} else if(isprint(((char*)mem)[j])) {
+					putchar(0xFF & ((char*)mem)[j]);
+				} else {
+					putchar('.');
+				}
+			}
+			putchar('\n');
+		}
+	}
 }
 #ifdef PHP_WIN32
 uint64_t mmc_htonll(uint64_t value)
@@ -322,7 +321,6 @@ static int mmc_request_read_mutate(mmc_t *mmc, mmc_request_t *request) /*
 			zval keytmp = *key;
 
 			zval_copy_ctor(&keytmp);
-			INIT_PZVAL(&keytmp);
 			convert_to_string(&keytmp);
 
 			result = request->value_handler(
@@ -394,7 +392,6 @@ static int mmc_request_read_value(mmc_t *mmc, mmc_request_t *request) /*
 			zval keytmp = *key;
 
 			zval_copy_ctor(&keytmp);
-			INIT_PZVAL(&keytmp);
 			convert_to_string(&keytmp);
 
 			result = mmc_unpack_value(

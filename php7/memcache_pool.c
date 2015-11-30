@@ -86,9 +86,9 @@ static unsigned int mmc_hash_fnv1a_combine(unsigned int seed, const void *key, u
 	while (p < end) {
 		seed ^= (unsigned int)*(p++);
 		seed *= FNV_32_PRIME;
-    }
+	}
 
-    return seed;
+	return seed;
 }
 /* }}} */
 
