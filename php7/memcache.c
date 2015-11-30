@@ -139,10 +139,11 @@ ZEND_GET_MODULE(memcache)
 
 static PHP_INI_MH(OnUpdateChunkSize) /* {{{ */
 {
-	long int lval;
+	zend_long val;
+	char *endptr = NULL;
 
-	lval = strtol(ZSTR_VAL(new_value), NULL, 10);
-	if (lval <= 0) {
+	val = ZEND_STRTOL(ZSTR_VAL(new_value), &endptr, 10);
+	if (!endptr || (*endptr != '\0') || val <= 0) {
 		php_error_docref(NULL, E_WARNING, "memcache.chunk_size must be a positive integer ('%s' given)", ZSTR_VAL(new_value));
 		return FAILURE;
 	}
@@ -153,10 +154,11 @@ static PHP_INI_MH(OnUpdateChunkSize) /* {{{ */
 
 static PHP_INI_MH(OnUpdateFailoverAttempts) /* {{{ */
 {
-	long int lval;
+	zend_long val;
+	char *endptr = NULL;
 
-	lval = strtol(ZSTR_VAL(new_value), NULL, 10);
-	if (lval <= 0) {
+	val = ZEND_STRTOL(ZSTR_VAL(new_value), &endptr, 10);
+	if (!endptr || (*endptr != '\0') || val <= 0) {
 		php_error_docref(NULL, E_WARNING, "memcache.max_failover_attempts must be a positive integer ('%s' given)", ZSTR_VAL(new_value));
 		return FAILURE;
 	}
@@ -218,10 +220,11 @@ static PHP_INI_MH(OnUpdateHashFunction) /* {{{ */
 
 static PHP_INI_MH(OnUpdateRedundancy) /* {{{ */
 {
-	long int lval;
+	zend_long val;
+	char *endptr = NULL;
 
-	lval = strtol(ZSTR_VAL(new_value), NULL, 10);
-	if (lval <= 0) {
+	val = ZEND_STRTOL(ZSTR_VAL(new_value), &endptr, 10);
+	if (!endptr || (*endptr != '\0') || val <= 0) {
 		php_error_docref(NULL, E_WARNING, "memcache.redundancy must be a positive integer ('%s' given)", ZSTR_VAL(new_value));
 		return FAILURE;
 	}
@@ -232,10 +235,11 @@ static PHP_INI_MH(OnUpdateRedundancy) /* {{{ */
 
 static PHP_INI_MH(OnUpdateCompressThreshold) /* {{{ */
 {
-	long int lval;
+	zend_long val;
+	char *endptr = NULL;
 
-	lval = strtol(ZSTR_VAL(new_value), NULL, 10);
-	if (lval < 0) {
+	val = ZEND_STRTOL(ZSTR_VAL(new_value), &endptr, 10);
+	if (!endptr || (*endptr != '\0') || val < 0) {
 		php_error_docref(NULL, E_WARNING, "memcache.compress_threshold must be a positive integer ('%s' given)", ZSTR_VAL(new_value));
 		return FAILURE;
 	}
@@ -246,10 +250,11 @@ static PHP_INI_MH(OnUpdateCompressThreshold) /* {{{ */
 
 static PHP_INI_MH(OnUpdateLockTimeout) /* {{{ */
 {
-	long int lval;
+	zend_long val;
+	char *endptr = NULL;
 
-	lval = strtol(ZSTR_VAL(new_value), NULL, 10);
-	if (lval <= 0) {
+	val = ZEND_STRTOL(ZSTR_VAL(new_value), &endptr, 10);
+	if (!endptr || (*endptr != '\0') || val <= 0) {
 		php_error_docref(NULL, E_WARNING, "memcache.lock_timeout must be a positive integer ('%s' given)", ZSTR_VAL(new_value));
 		return FAILURE;
 	}
