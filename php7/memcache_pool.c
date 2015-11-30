@@ -703,8 +703,6 @@ static int mmc_server_connect(mmc_pool_t *pool, mmc_t *mmc, mmc_stream_t *io, in
 		spprintf(&hash_key, 0, "memcache:stream:%s:%u:%d", mmc->host, io->port, udp);
 	}
 
-#if PHP_API_VERSION > 20020918
-
 	if (udp) {
 		host_len = spprintf(&host, 0, "udp://%s:%u", mmc->host, io->port);
 	}
@@ -722,36 +720,6 @@ static int mmc_server_connect(mmc_pool_t *pool, mmc_t *mmc, mmc_stream_t *io, in
 		hash_key, &tv, NULL, &errstr, &errnum);
 
 	efree(host);
-
-#else
-
-	if (mmc->persistent) {
-		switch (php_stream_from_persistent_id(hash_key, &(io->stream))) {
-			case PHP_STREAM_PERSISTENT_SUCCESS:
-				if (php_stream_eof(io->stream)) {
-					php_stream_pclose(io->stream);
-					io->stream = NULL;
-					io->fd = 0;
-					break;
-				}
-			case PHP_STREAM_PERSISTENT_FAILURE:
-				break;
-		}
-	}
-
-	if (io->stream == NULL) {
-		if (io->port) {
-			io->stream = php_stream_sock_open_host(mmc->host, io->port, udp ? SOCK_DGRAM : SOCK_STREAM, &tv, hash_key);
-		}
-		else if (strncasecmp("unix://", mmc->host, sizeof("unix://")-1) == 0 && strlen(mmc->host) > sizeof("unix://")-1) {
-			io->stream = php_stream_sock_open_unix(mmc->host + sizeof("unix://")-1, strlen(mmc->host + sizeof("unix://")-1), hash_key, &tv);
-		}
-		else {
-			io->stream = php_stream_sock_open_unix(mmc->host, strlen(mmc->host), hash_key, &tv);
-		}
-	}
-
-#endif
 
 	if (hash_key != NULL) {
 		efree(hash_key);
