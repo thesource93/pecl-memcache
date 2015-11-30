@@ -72,17 +72,9 @@ PHP_FUNCTION(memcache_set_sasl_auth_data);
 #define MMC_DEFAULT_RETRY 15 				/* retry failed server after x seconds */
 #define MMC_DEFAULT_CACHEDUMP_LIMIT	100		/* number of entries */
 
-#if (PHP_MAJOR_VERSION == 5) && (PHP_MINOR_VERSION >= 3)
-#   define MEMCACHE_IS_CALLABLE(cb_zv, flags, cb_sp) zend_is_callable((cb_zv), (flags), (cb_sp))
-#else
-#   define MEMCACHE_IS_CALLABLE(cb_zv, flags, cb_sp) zend_is_callable((cb_zv), (flags), (cb_sp))
-#endif
+#define MEMCACHE_IS_CALLABLE(cb_zv, flags, cb_sp) zend_is_callable((cb_zv), (flags), (cb_sp))
+#define MEMCACHE_LIST_INSERT(list, val) zend_list_insert((list), (val))
 
-#if (PHP_MAJOR_VERSION == 5 && PHP_MINOR_VERSION == 3)
-#	define MEMCACHE_LIST_INSERT(list, val) zend_list_insert((list), (val))
-#else
-#	define MEMCACHE_LIST_INSERT(list, val) zend_list_insert((list), (val))
-#endif
 /* internal functions */
 mmc_t *mmc_find_persistent(const char *, int, unsigned short, unsigned short, double, int);
 int mmc_value_handler_single(const char *, unsigned int, zval *, unsigned int, unsigned long, void *);

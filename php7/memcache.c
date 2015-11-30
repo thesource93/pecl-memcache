@@ -1386,7 +1386,7 @@ PHP_FUNCTION(memcache_get_server_status)
 	mmc_pool_t *pool;
 	mmc_t *mmc = NULL;
 	zend_long tcp_port = MEMCACHE_G(default_port);
-	size_t host_len
+	size_t host_len;
 	int i;
 	char *host;
 
