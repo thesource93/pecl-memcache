@@ -54,7 +54,7 @@ MMC_POOL_INLINE void mmc_buffer_free(mmc_buffer_t *buffer)  /* {{{ */
 	if (buffer->value.c != NULL) {
 		smart_string_free(&(buffer->value));
 	}
-	memset(buffer, 0, sizeof(*buffer));
+	ZEND_SECURE_ZERO(buffer, sizeof(*buffer));
 }
 /* }}} */
 
@@ -297,7 +297,7 @@ static void mmc_compress(mmc_pool_t *pool, mmc_buffer_t *buffer, const char *val
 			prev = *buffer;
 
 			/* allocate space for prev header + result */
-			memset(buffer, 0, sizeof(*buffer));
+			ZEND_SECURE_ZERO(buffer, sizeof(*buffer));
 			mmc_buffer_alloc(buffer, prev.value.len + result_len);
 
 			/* append prev header */
@@ -543,7 +543,7 @@ mmc_t *mmc_server_new(
 	int persistent, double timeout, int retry_interval) /* {{{ */
 {
 	mmc_t *mmc = pemalloc(sizeof(mmc_t), persistent);
-	memset(mmc, 0, sizeof(*mmc));
+	ZEND_SECURE_ZERO(mmc, sizeof(*mmc));
 
 	mmc->host = pemalloc(host_len + 1, persistent);
 	memcpy(mmc->host, host, host_len);
@@ -851,7 +851,7 @@ static void mmc_pool_init_hash(mmc_pool_t *pool) /* {{{ */
 mmc_pool_t *mmc_pool_new() /* {{{ */
 {
 	mmc_pool_t *pool = emalloc(sizeof(mmc_pool_t));
-	memset(pool, 0, sizeof(*pool));
+	ZEND_SECURE_ZERO(pool, sizeof(*pool));
 
 	switch (MEMCACHE_G(protocol)) {
 		case MMC_BINARY_PROTOCOL:

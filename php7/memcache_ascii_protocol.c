@@ -206,7 +206,7 @@ static int mmc_server_read_value(mmc_t *mmc, mmc_request_t *request) /*
 static mmc_request_t *mmc_ascii_create_request() /* {{{ */ 
 {
 	mmc_ascii_request_t *request = emalloc(sizeof(mmc_ascii_request_t));
-	memset(request, 0, sizeof(*request));
+	ZEND_SECURE_ZERO(request, sizeof(*request));
 	return (mmc_request_t *)request;
 }
 /* }}} */
@@ -265,7 +265,7 @@ static int mmc_ascii_store(
 	mmc_buffer_t buffer;
 	request->parse = mmc_request_parse_response;
 
-	memset(&buffer, 0, sizeof(buffer));
+	ZEND_SECURE_ZERO(&buffer, sizeof(buffer));
 	status = mmc_pack_value(pool, &buffer, value, &flags);
 	
 	if (status != MMC_OK) {

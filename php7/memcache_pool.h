@@ -124,7 +124,7 @@ typedef struct mmc_buffer {
 	unsigned int	idx;					/* current index */
 } mmc_buffer_t;
 
-#define mmc_buffer_release(b) memset((b), 0, sizeof(*(b)))
+#define mmc_buffer_release(b) ZEND_SECURE_ZERO((b), sizeof(*(b)))
 #define mmc_buffer_reset(b) (b)->value.len = (b)->idx = 0
 
 #if defined(__STDC_VERSION__) && __STDC_VERSION__ >= 201112L

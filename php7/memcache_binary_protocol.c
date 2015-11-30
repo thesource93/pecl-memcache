@@ -436,7 +436,7 @@ static inline void mmc_pack_header(mmc_request_header_t *header, uint8_t opcode,
 static mmc_request_t *mmc_binary_create_request() /* {{{ */
 {
 	mmc_binary_request_t *request = emalloc(sizeof(mmc_binary_request_t));
-	memset(request, 0, sizeof(mmc_binary_request_t));
+	ZEND_SECURE_ZERO(request, sizeof(mmc_binary_request_t));
 	return (mmc_request_t *)request;
 }
 /* }}} */
