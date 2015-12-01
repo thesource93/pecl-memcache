@@ -394,7 +394,7 @@ int mmc_unpack_value(mmc_t *, mmc_request_t *, mmc_buffer_t *, const char *, uns
 double timeval_to_double(struct timeval tv);
 struct timeval double_to_timeval(double sec);
 
-MMC_POOL_INLINE int mmc_prepare_key_ex(const char *, unsigned int, char *, unsigned int *);
+MMC_POOL_INLINE int mmc_prepare_key_ex(const char *, unsigned int, char *, unsigned int *, char *);
 MMC_POOL_INLINE int mmc_prepare_key(zval *, char *, unsigned int *);
 
 #define mmc_str_left(h, n, hlen, nlen) ((hlen) >= (nlen) ? memcmp((h), (n), (nlen)) == 0 : 0)
@@ -412,6 +412,17 @@ ZEND_BEGIN_MODULE_GLOBALS(memcache)
 	long session_redundancy;
 	long compress_threshold;
 	long lock_timeout;
+	char *session_key_prefix;
+	char *session_prefix_host_key;
+	char *session_prefix_host_key_remove_www;
+	char *session_prefix_host_key_remove_subdomain;
+	char *session_prefix_static_key;
+	char *session_save_path;
+	char *key_prefix;
+	char *prefix_host_key;
+	char *prefix_host_key_remove_www;
+	char *prefix_host_key_remove_subdomain;
+	char *prefix_static_key;
 ZEND_END_MODULE_GLOBALS(memcache)
 
 #ifdef ZTS
