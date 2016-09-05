@@ -323,6 +323,16 @@ PS_READ_FUNC(memcache)
 				/* if missing value, skip this server and try next */
 				zval_dtor(&dataresult);
 				mmc_queue_push(&skip_servers, mmc);
+				
+				/* if it is the last server in pool and connection was ok return success and empty string due to php70 changes */
+				if (skip_servers.len = pool->num_servers && skip_servers.len < MEMCACHE_G(session_redundancy)-1) {
+					*val = ZSTR_EMPTY_ALLOC();
+					mmc_queue_free(&skip_servers);
+					zval_ptr_dtor(&dataresult);
+					return SUCCESS;
+
+				}
+				
 			}
 			else {
 				/* if missing lock, back off and retry same server */
