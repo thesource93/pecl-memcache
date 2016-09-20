@@ -335,7 +335,7 @@ PS_READ_FUNC(memcache)
 				mmc_queue_push(&skip_servers, mmc);
 				
 				/* if it is the last server in pool and connection was ok return success and empty string due to php70 changes */
-				if (skip_servers.len = pool->num_servers && skip_servers.len < MEMCACHE_G(session_redundancy)-1) {
+				if (skip_servers.len = pool->num_servers && skip_servers.len < MEMCACHE_G(session_redundancy)) {
 					*val = ZSTR_EMPTY_ALLOC();
 					mmc_queue_free(&skip_servers);
 					zval_ptr_dtor(&dataresult);
@@ -357,7 +357,7 @@ PS_READ_FUNC(memcache)
 				}
 			}
 
-		} while (skip_servers.len < MEMCACHE_G(session_redundancy)-1 && skip_servers.len < pool->num_servers && remainingtime > 0);
+		} while (skip_servers.len < MEMCACHE_G(session_redundancy) && skip_servers.len < pool->num_servers && remainingtime > 0);
 
 		mmc_queue_free(&skip_servers);
 		zval_dtor(&dataresult);
@@ -416,6 +416,7 @@ PS_WRITE_FUNC(memcache)
 					pool->protocol->store(pool, lockrequest, MMC_OP_SET, lockrequest->key, lockrequest->key_len, 0, MEMCACHE_G(lock_timeout), 0, &lockvalue) != MMC_OK) {
 				mmc_pool_release(pool, datarequest);
 				mmc_pool_release(pool, lockrequest);
+				mmc_queue_push(&skip_servers, mmc);
 				break;
 			}
 
@@ -430,7 +431,7 @@ PS_WRITE_FUNC(memcache)
 				mmc_pool_release(pool, lockrequest);
 				continue;
 			}
-		} while (skip_servers.len < MEMCACHE_G(session_redundancy)-1 && skip_servers.len < pool->num_servers);
+		} while (skip_servers.len < MEMCACHE_G(session_redundancy) && skip_servers.len < pool->num_servers);
 
 		mmc_queue_free(&skip_servers);
 
@@ -521,7 +522,7 @@ PS_DESTROY_FUNC(memcache)
 				mmc_pool_release(pool, lockrequest);
 				continue;
 			}
-		} while (skip_servers.len < MEMCACHE_G(session_redundancy)-1 && skip_servers.len < pool->num_servers);
+		} while (skip_servers.len < MEMCACHE_G(session_redundancy) && skip_servers.len < pool->num_servers);
 
 		mmc_queue_free(&skip_servers);
 
