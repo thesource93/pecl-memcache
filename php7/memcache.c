@@ -954,7 +954,7 @@ static mmc_t *php_mmc_pool_addserver(
 	/* initialize pool if need be */
 	if ((connection = zend_hash_str_find(Z_OBJPROP_P(mmc_object), "connection", sizeof("connection")-1)) == NULL) {
 		pool = mmc_pool_new();
-		pool->failure_callback = &php_mmc_failure_callback;
+		pool->failure_callback = (mmc_failure_callback) &php_mmc_failure_callback;
 		list_res = zend_register_resource(pool, le_memcache_pool);
 		add_property_resource(mmc_object, "connection", list_res);
 		GC_REFCOUNT(list_res)++;
@@ -1036,7 +1036,7 @@ static void php_mmc_connect(INTERNAL_FUNCTION_PARAMETERS, zend_bool persistent) 
 	if (!mmc_object) {
 		zend_resource *list_res;
 		mmc_pool_t *pool = mmc_pool_new();
-		pool->failure_callback = &php_mmc_failure_callback;
+		pool->failure_callback = (mmc_failure_callback) &php_mmc_failure_callback;
 		list_res = zend_register_resource(pool, le_memcache_pool);
 		mmc_object = return_value;
 		object_init_ex(mmc_object, memcache_ce);

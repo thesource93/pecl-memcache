@@ -127,12 +127,7 @@ typedef struct mmc_buffer {
 #define mmc_buffer_release(b) ZEND_SECURE_ZERO((b), sizeof(*(b)))
 #define mmc_buffer_reset(b) (b)->value.len = (b)->idx = 0
 
-#if defined(__STDC_VERSION__) && __STDC_VERSION__ >= 201112L
-/* see https://gcc.gnu.org/gcc-5/porting_to.html */
-#define MMC_POOL_INLINE extern inline
-#else
-#define MMC_POOL_INLINE inline
-#endif
+#define MMC_POOL_INLINE
 
 MMC_POOL_INLINE void mmc_buffer_alloc(mmc_buffer_t *, unsigned int);
 MMC_POOL_INLINE void mmc_buffer_free(mmc_buffer_t *);
