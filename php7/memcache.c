@@ -626,10 +626,14 @@ static void php_mmc_store(INTERNAL_FUNCTION_PARAMETERS, int op) /* {{{ */
 		zend_string *key;
 		zval *val;
 		zend_ulong index;
+		int release;
 
 		ZEND_HASH_FOREACH_KEY_VAL(Z_ARRVAL_P(keys), index, key, val ) {
 			if (key == NULL) {
 				key = strpprintf(0, ZEND_ULONG_FMT, index);
+				release = 1;
+			} else {
+				release = 0;
 			}
 
 			/* allocate request */
@@ -639,11 +643,15 @@ static void php_mmc_store(INTERNAL_FUNCTION_PARAMETERS, int op) /* {{{ */
 			if (mmc_prepare_key_ex(ZSTR_VAL(key), ZSTR_LEN(key), request->key, &(request->key_len), MEMCACHE_G(key_prefix)) != MMC_OK) {
 				php_error_docref(NULL, E_WARNING, "Invalid key");
 				mmc_pool_release(pool, request);
-				zend_string_release(key);
+				if (release) {
+					zend_string_release(key);
+				}
 				continue;
 			}
 
-			zend_string_release(key);
+			if (release) {
+				zend_string_release(key);
+			}
 
 			/* assemble command */
 			if (pool->protocol->store(pool, request, op, request->key, request->key_len, flags, exptime, cas, val) != MMC_OK) {
