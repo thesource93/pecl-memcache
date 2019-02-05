@@ -870,6 +870,17 @@ static void php_mmc_numeric(INTERNAL_FUNCTION_PARAMETERS, int deleted, int inver
 }
 /* }}} */
 
+
+	/*TODO: in php73, we should use zend_register_persistent_resource , e.g.:
+
+	char *persistent_id;
+	persistent_id = pemalloc(key_len + 1, 1);
+	memcpy((char *)persistent_id, key, key_len+1);
+	if (zend_register_persistent_resource ( (char*) persistent_id, key_len, mmc, le_memcache_server) == NULL) ;
+
+	then not forget to pefree, check refcounts in _mmc_server_free / _mmc_server_list_dtor ,  etc. 
+	otherwise we will leak mem with persistent connections /run into other trouble with later versions
+	*/
 mmc_t *mmc_find_persistent(const char *host, int host_len, unsigned short port, unsigned short udp_port, double timeout, int retry_interval) /* {{{ */
 {
 	mmc_t *mmc;
@@ -881,6 +892,7 @@ mmc_t *mmc_find_persistent(const char *host, int host_len, unsigned short port, 
 
 	if ((le = zend_hash_str_find_ptr(&EG(persistent_list), key, key_len)) == NULL) {
 		mmc = mmc_server_new(host, host_len, port, udp_port, 1, timeout, retry_interval);
+
 
 		le = zend_register_resource(mmc, le_memcache_server);
 
